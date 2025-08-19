@@ -24,6 +24,19 @@ class TapCricketScene extends Phaser.Scene {
   }
 
   create() {
+    // Initialize dynamic shadows
+    this.shadowOffset = { x: 2, y: 2 };
+    this.time.addEvent({
+      delay: 100,
+      callback: this.updateDynamicShadows,
+      callbackScope: this,
+      loop: true,
+    });
+
+    // Handle orientation changes
+    this.scale.on("resize", this.handleResize, this);
+    this.handleResize();
+
     // Add background pitch
     this.add
       .image(this.scale.width / 2, this.scale.height / 2, "pitch")
@@ -65,25 +78,63 @@ class TapCricketScene extends Phaser.Scene {
     // Ball group
     this.balls = this.physics.add.group();
 
-    // Score display
-    this.scoreText = this.add.text(16, 16, "Score: 0", {
-      fontSize: "24px",
-      fill: "#ffffff",
-      stroke: "#000000",
-      strokeThickness: 2,
-    });
+    // Score display with responsive font size and bottom margin
+    const scoreSize = Math.min(this.scale.width * 0.08, 40); // Increased size
+    const scoreMarginTop = Math.min(this.scale.width * 0.04, 20); // Top margin
+    const scoreMarginBottom = Math.min(this.scale.width * 0.06, 30); // Bottom margin
 
-    // Delivery type display
-    this.deliveryText = this.add.text(16, 50, "", {
-      fontSize: "18px",
-      fill: "#ffff00",
-      stroke: "#000000",
-      strokeThickness: 2,
-    });
+    this.scoreText = this.add
+      .text(this.scale.width * 0.05, scoreMarginTop, "Score: 0", {
+        fontSize: `${scoreSize}px`,
+        fill: "#ffffff",
+        stroke: "#000000",
+        strokeThickness: 4, // Increased stroke for better visibility
+        fontFamily: "Rubik, sans-serif",
+        fontWeight: "700", // Bold weight for main score
+        letterSpacing: 1, // Better readability for numbers
+      })
+      .setScrollFactor(0);
 
-    // Input tap = swing bat
-    this.input.on("pointerdown", () => {
+    // Delivery type display with enhanced visibility
+    const deliverySize = Math.min(this.scale.width * 0.06, 28); // Slightly larger
+    this.deliveryText = this.add
+      .text(this.scale.width * 0.05, this.scale.height * 0.08, "", {
+        fontSize: `${deliverySize}px`,
+        fill: "#ffffff", // Default color, will be changed per delivery
+        stroke: "#000000",
+        strokeThickness: 2, // Thinner stroke for sharper look
+        fontFamily: "Rubik, sans-serif",
+        fontWeight: "700", // Keep bold for readability
+        letterSpacing: 4, // Increased letter spacing for better readability
+      })
+      .setScrollFactor(0);
+
+    // Enhanced touch input handling
+    this.input.on("pointerdown", (pointer) => {
+      // Store initial touch position
+      this.touchStartY = pointer.y;
       this.swingBat();
+    });
+
+    this.input.on("pointermove", (pointer) => {
+      if (pointer.isDown) {
+        // Calculate swipe distance
+        const swipeDistance = pointer.y - this.touchStartY;
+        // Adjust bat angle based on swipe
+        if (Math.abs(swipeDistance) > 10) {
+          this.bat.angle = Phaser.Math.Clamp(swipeDistance * 0.5, -60, 60);
+        }
+      }
+    });
+
+    this.input.on("pointerup", () => {
+      // Reset bat angle
+      this.tweens.add({
+        targets: this.bat,
+        angle: 0,
+        duration: 200,
+        ease: "Power2",
+      });
     });
 
     // Timer: spawn balls with varying intervals
@@ -116,14 +167,45 @@ class TapCricketScene extends Phaser.Scene {
     this.deliveryType = delivery.type;
     this.ballSpeed = delivery.speed;
 
-    // Display delivery type
+    // Display delivery type with enhanced animation and colors
+    // Color scheme with enhanced contrast and readability
+    const deliveryColors = {
+      Fast: { text: "#FF4D4D", stroke: "#800000" }, // Bright red with darker stroke
+      Medium: { text: "#FFA726", stroke: "#873600" }, // Softer orange
+      Slow: { text: "#66BB6A", stroke: "#1B5E20" }, // Muted green
+    };
+
+    const ballColor = deliveryColors[delivery.type];
     this.deliveryText.setText(`${delivery.type} Ball`);
-    this.deliveryText.setAlpha(1);
+    this.deliveryText.setAlpha(0).setScale(0.8);
+    this.deliveryText.setColor(ballColor.text);
+    this.deliveryText.setStroke(ballColor.stroke, 3);
+
+    // Entrance animation
     this.tweens.add({
       targets: this.deliveryText,
-      alpha: 0,
-      duration: 1000,
-      delay: 500,
+      alpha: 1,
+      scale: 1,
+      duration: 300,
+      ease: "Back.easeOut",
+      onStart: () => {
+        // Clean look without shadow
+        this.deliveryText.setShadow(0, 0, "transparent", 0);
+      },
+    });
+
+    // Exit animation
+    this.time.delayedCall(800, () => {
+      this.tweens.add({
+        targets: this.deliveryText,
+        alpha: 0,
+        scale: 0.9,
+        duration: 400,
+        ease: "Back.easeIn",
+        onComplete: () => {
+          this.deliveryText.setShadow(0, 0, "#000000", 0);
+        },
+      });
     });
 
     // Spawn ball at bowler's end (around 400px from top)
@@ -293,9 +375,37 @@ class TapCricketScene extends Phaser.Scene {
       runs = Math.floor(delivery.runs * 0.3); // Okay timing
     }
 
-    // Update score
+    // Update score with animation
     this.score += runs;
+    const oldScore = Number(this.scoreText.text.split(": ")[1]);
     this.scoreText.setText(`Score: ${this.score}`);
+
+    // Animate score change
+    if (this.score > oldScore) {
+      // Subtle scale and glow effect for score increase
+      this.tweens.add({
+        targets: this.scoreText,
+        scaleX: 1.15,
+        scaleY: 1.15,
+        duration: 150,
+        yoyo: true,
+        ease: "Back.easeOut",
+        onStart: () => {
+          // Add golden glow effect
+          this.scoreText.setShadow(0, 0, "#ffd700", 8, true, true);
+        },
+        onComplete: () => {
+          // Remove glow effect smoothly
+          this.tweens.add({
+            targets: this.scoreText,
+            duration: 200,
+            onComplete: () => {
+              this.scoreText.setShadow(2, 2, "#000000", 2, false);
+            },
+          });
+        },
+      });
+    }
 
     // Show runs feedback
     this.showRunsFeedback(runs, accuracy);
@@ -343,23 +453,81 @@ class TapCricketScene extends Phaser.Scene {
       color = "#ffffff";
     }
 
+    // Dynamic feedback size based on importance
+    const baseFeedbackSize = Math.min(this.scale.width * 0.09, 42);
+    const feedbackSize =
+      accuracy > 0.8
+        ? baseFeedbackSize // Largest for perfect hits
+        : accuracy > 0.6
+        ? baseFeedbackSize * 0.9 // Slightly smaller for good hits
+        : baseFeedbackSize * 0.8; // Smallest for basic hits
+
     const feedback = this.add
-      .text(this.scale.width / 2, this.scale.height / 2, feedbackText, {
-        fontSize: "24px",
+      .text(this.scale.width / 2, this.scale.height * 0.4, feedbackText, {
+        fontSize: `${feedbackSize}px`,
         fill: color,
         stroke: "#000000",
-        strokeThickness: 2,
+        strokeThickness: accuracy > 0.6 ? 4 : 3, // Thicker stroke for better hits
+        fontFamily: "Rubik, sans-serif",
+        fontWeight: accuracy > 0.8 ? "700" : accuracy > 0.6 ? "500" : "400", // Weight varies by performance
+        align: "center",
+        letterSpacing: accuracy > 0.8 ? 2 : 1, // More spacing for emphasis on perfect hits
       })
       .setOrigin(0.5);
 
-    // Animate feedback
+    // Enhanced feedback animation
+    feedback.setScale(0.8).setAlpha(0);
+
+    // Initial pop-in animation
     this.tweens.add({
       targets: feedback,
-      alpha: 0,
-      y: feedback.y - 50,
-      duration: 1500,
-      onComplete: () => feedback.destroy(),
+      scale: 1,
+      alpha: 1,
+      duration: 200,
+      ease: "Back.easeOut",
+      onComplete: () => {
+        // Add bounce effect for perfect/good hits
+        if (accuracy > 0.6) {
+          this.tweens.add({
+            targets: feedback,
+            y: feedback.y - 15,
+            duration: 150,
+            yoyo: true,
+            repeat: 1,
+            ease: "Sine.easeInOut",
+          });
+        }
+
+        // Fade out animation
+        this.tweens.add({
+          targets: feedback,
+          alpha: 0,
+          y: feedback.y - 50,
+          scale: accuracy > 0.8 ? 1.2 : 0.8,
+          duration: accuracy > 0.8 ? 1800 : 1200,
+          ease: "Cubic.easeOut",
+          delay: 400,
+          onComplete: () => feedback.destroy(),
+        });
+      },
     });
+
+    // Add pulsing glow for perfect hits
+    if (accuracy > 0.8) {
+      let glowIntensity = 8;
+      this.tweens.add({
+        targets: { intensity: glowIntensity },
+        intensity: 2,
+        duration: 600,
+        repeat: 2,
+        yoyo: true,
+        ease: "Sine.easeInOut",
+        onUpdate: (tween) => {
+          const intensity = tween.getValue();
+          feedback.setShadow(0, 0, color, intensity, true, true);
+        },
+      });
+    }
   }
 
   update() {
@@ -377,6 +545,88 @@ class TapCricketScene extends Phaser.Scene {
       }
     });
   }
+
+  updateDynamicShadows() {
+    // Calculate subtle shadow movement based on time
+    const time = this.time.now / 1000;
+    const xOffset = Math.cos(time * 2) * 0.5;
+    const yOffset = Math.sin(time * 2) * 0.5;
+
+    this.shadowOffset.x = 2 + xOffset;
+    this.shadowOffset.y = 2 + yOffset;
+
+    // Apply to score text
+    if (this.scoreText) {
+      this.scoreText.setShadow(
+        this.shadowOffset.x,
+        this.shadowOffset.y,
+        "#000000",
+        2,
+        false
+      );
+    }
+
+    // Apply to delivery text if visible
+    if (this.deliveryText && this.deliveryText.alpha > 0) {
+      const deliveryGlow = this.deliveryText.style.shadowColor || "#000000";
+      this.deliveryText.setShadow(
+        this.shadowOffset.x,
+        this.shadowOffset.y,
+        deliveryGlow,
+        this.deliveryText.style.shadowBlur || 2,
+        true
+      );
+    }
+  }
+
+  handleResize() {
+    const width = this.scale.gameSize.width;
+    const height = this.scale.gameSize.height;
+    const isPortrait = height > width;
+
+    // Update game objects for new orientation
+    if (this.scoreText) {
+      const scoreSize = Math.min(width * (isPortrait ? 0.08 : 0.06), 40);
+      const scoreMarginTop = Math.min(width * 0.04, 20);
+
+      this.scoreText.setFontSize(scoreSize);
+      this.scoreText.setPosition(width * 0.05, scoreMarginTop);
+    }
+
+    if (this.deliveryText) {
+      const deliverySize = Math.min(width * (isPortrait ? 0.045 : 0.03), 24);
+      this.deliveryText.setFontSize(deliverySize);
+      this.deliveryText.setPosition(width * 0.05, height * 0.08);
+    }
+
+    // Update crease position
+    this.creaseY = isPortrait ? height - 150 : height - 100;
+    if (this.creaseGraphics) {
+      this.creaseGraphics.clear();
+      this.creaseGraphics.lineStyle(4, 0xffffff, 0.8);
+      this.creaseGraphics.lineBetween(
+        width * 0.3,
+        this.creaseY,
+        width * 0.7,
+        this.creaseY
+      );
+    }
+
+    // Update stumps position
+    if (this.stumps) {
+      this.stumps.setPosition(
+        width / 2,
+        isPortrait ? height - 80 : height - 60
+      );
+      this.stumps.setSize(isPortrait ? 40 : 30, isPortrait ? 60 : 45);
+    }
+
+    // Update bat position
+    if (this.bat) {
+      this.bat.setPosition(width / 2, isPortrait ? height - 120 : height - 90);
+      this.bat.setSize(isPortrait ? 8 : 6, isPortrait ? 40 : 30);
+    }
+  }
 }
 
 const config = {
@@ -388,6 +638,21 @@ const config = {
     arcade: { debug: false },
   },
   scene: [TapCricketScene],
+  scale: {
+    mode: Phaser.Scale.FIT,
+    autoCenter: Phaser.Scale.CENTER_BOTH,
+    parent: "game",
+    width: 480,
+    height: 800,
+    min: {
+      width: 320,
+      height: 480,
+    },
+    max: {
+      width: 1024,
+      height: 2048,
+    },
+  },
 };
 
 const game = new Phaser.Game(config);
