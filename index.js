@@ -8,8 +8,8 @@ class TapCricketScene extends Phaser.Scene {
   preload() {
     // Load assets (replace with your own images)
     this.load.image("pitch", "assets/pitch.jpg"); // vertical pitch bg
+    this.load.image("ball", "assets/ball.png"); // cricket ball
     // this.load.image("stumps", "assets/stumps.png"); // stumps image (bottom)
-    // this.load.image("ball", "assets/ball.png"); // cricket ball
     // this.load.image("bat", "assets/bat.png"); // bat sprite
   }
 
@@ -29,8 +29,7 @@ class TapCricketScene extends Phaser.Scene {
       .image(this.scale.width / 2, this.scale.height / 2, "pitch")
       .setDisplaySize(this.scale.width, this.scale.height);
 
-    // Create temporary graphics for missing assets
-    this.createTemporaryAssets();
+    // Note: Ball asset is now loaded from assets/ball.png
 
     // Define batting crease position (where ball should be hit)
     this.creaseY = this.scale.height - 150;
@@ -91,15 +90,6 @@ class TapCricketScene extends Phaser.Scene {
     this.scheduleNextBall();
   }
 
-  createTemporaryAssets() {
-    // Create a circular texture for the ball
-    const ballGraphics = this.add.graphics();
-    ballGraphics.fillStyle(0xff0000);
-    ballGraphics.fillCircle(10, 10, 10);
-    ballGraphics.generateTexture("tempBall", 20, 20);
-    ballGraphics.destroy();
-  }
-
   scheduleNextBall() {
     // Variable delay between balls (1.5 to 3 seconds)
     const delay = Phaser.Math.Between(1500, 3000);
@@ -136,13 +126,15 @@ class TapCricketScene extends Phaser.Scene {
       delay: 500,
     });
 
-    // Spawn ball at bowler's end (top of screen)
-    const startX = this.scale.width / 2 + Phaser.Math.Between(-30, 30); // slight variation
-    const startY = 50;
+    // Spawn ball at bowler's end (around 400px from top)
+    const bowlerPositionY = 400 + Phaser.Math.Between(-20, 20); // Around 400px with variation
+
+    const startX = this.scale.width / 2 + Phaser.Math.Between(-20, 20); // slight variation
+    const startY = bowlerPositionY;
 
     this.activeBall = this.physics.add
-      .image(startX, startY, "tempBall")
-      .setScale(0.8);
+      .image(startX, startY, "ball")
+      .setScale(0.035);
     this.activeBall.setData("delivery", delivery);
     this.activeBall.setData("hasBounced", false);
     this.activeBall.setData("canHit", false);
@@ -150,7 +142,9 @@ class TapCricketScene extends Phaser.Scene {
 
     // Set initial velocity for bowling arc
     const targetX = this.scale.width / 2;
-    const bounceY = this.creaseY - 50; // Bounce just before the crease
+    // Calculate realistic bounce position for good length delivery
+    const remainingDistance = this.creaseY - bowlerPositionY;
+    const bounceY = bowlerPositionY + remainingDistance * 0.6; // Bounce at good length (60% of remaining distance)
 
     // Calculate arc trajectory
     this.createBowlingArc(
