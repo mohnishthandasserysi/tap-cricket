@@ -24,14 +24,14 @@ class TapCricketScene extends Phaser.Scene {
   }
 
   create() {
-    // Initialize dynamic shadows
+    // Initialize dynamic shadows (disabled temporarily to debug)
     this.shadowOffset = { x: 2, y: 2 };
-    this.time.addEvent({
-      delay: 100,
-      callback: this.updateDynamicShadows,
-      callbackScope: this,
-      loop: true,
-    });
+    // this.time.addEvent({
+    //   delay: 100,
+    //   callback: this.updateDynamicShadows,
+    //   callbackScope: this,
+    //   loop: true,
+    // });
 
     // Handle orientation changes
     this.scale.on("resize", this.handleResize, this);
@@ -47,15 +47,28 @@ class TapCricketScene extends Phaser.Scene {
     // Define batting crease position (where ball should be hit)
     this.creaseY = this.scale.height - 150;
 
-    // Add visible batting crease line
-    this.creaseGraphics = this.add.graphics();
-    this.creaseGraphics.lineStyle(4, 0xffffff, 0.8);
-    this.creaseGraphics.lineBetween(
-      this.scale.width * 0.3,
-      this.creaseY,
-      this.scale.width * 0.7,
-      this.creaseY
-    );
+    // Add visible batting crease line (simplified)
+    try {
+      this.creaseGraphics = this.add.graphics();
+      this.creaseGraphics.lineStyle(4, 0xffffff, 0.8);
+      this.creaseGraphics.lineBetween(
+        this.scale.width * 0.3,
+        this.creaseY,
+        this.scale.width * 0.7,
+        this.creaseY
+      );
+    } catch (error) {
+      console.error("Error creating crease graphics:", error);
+      // Fallback: create a simple rectangle instead
+      this.creaseGraphics = this.add.rectangle(
+        this.scale.width / 2,
+        this.creaseY,
+        this.scale.width * 0.4,
+        4,
+        0xffffff,
+        0.8
+      );
+    }
 
     // Add stumps at bottom (batter's perspective) - temporary rectangle
     this.stumps = this.add.rectangle(
@@ -190,7 +203,17 @@ class TapCricketScene extends Phaser.Scene {
       ease: "Back.easeOut",
       onStart: () => {
         // Clean look without shadow
-        this.deliveryText.setShadow(0, 0, "transparent", 0);
+        try {
+          if (
+            this.deliveryText &&
+            this.deliveryText.active &&
+            this.deliveryText.scene
+          ) {
+            this.deliveryText.setShadow(0, 0, "transparent", 0);
+          }
+        } catch (error) {
+          console.error("Error setting delivery text shadow:", error);
+        }
       },
     });
 
@@ -392,7 +415,17 @@ class TapCricketScene extends Phaser.Scene {
         ease: "Back.easeOut",
         onStart: () => {
           // Add golden glow effect
-          this.scoreText.setShadow(0, 0, "#ffd700", 8, true, true);
+          try {
+            if (
+              this.scoreText &&
+              this.scoreText.active &&
+              this.scoreText.scene
+            ) {
+              this.scoreText.setShadow(0, 0, "#ffd700", 8, true, true);
+            }
+          } catch (error) {
+            console.error("Error setting score shadow:", error);
+          }
         },
         onComplete: () => {
           // Remove glow effect smoothly
@@ -400,7 +433,17 @@ class TapCricketScene extends Phaser.Scene {
             targets: this.scoreText,
             duration: 200,
             onComplete: () => {
-              this.scoreText.setShadow(2, 2, "#000000", 2, false);
+              try {
+                if (
+                  this.scoreText &&
+                  this.scoreText.active &&
+                  this.scoreText.scene
+                ) {
+                  this.scoreText.setShadow(2, 2, "#000000", 2, false);
+                }
+              } catch (error) {
+                console.error("Error removing score shadow:", error);
+              }
             },
           });
         },
@@ -524,7 +567,13 @@ class TapCricketScene extends Phaser.Scene {
         ease: "Sine.easeInOut",
         onUpdate: (tween) => {
           const intensity = tween.getValue();
-          feedback.setShadow(0, 0, color, intensity, true, true);
+          try {
+            if (feedback && feedback.active && feedback.scene) {
+              feedback.setShadow(0, 0, color, intensity, true, true);
+            }
+          } catch (error) {
+            console.error("Error setting feedback shadow:", error);
+          }
         },
       });
     }
@@ -546,6 +595,20 @@ class TapCricketScene extends Phaser.Scene {
     });
   }
 
+  destroy() {
+    // Clean up event listeners and timers
+    if (this.scale) {
+      this.scale.off("resize", this.handleResize, this);
+    }
+
+    // Clean up any active timers
+    if (this.time) {
+      this.time.removeAllEvents();
+    }
+
+    super.destroy();
+  }
+
   updateDynamicShadows() {
     // Calculate subtle shadow movement based on time
     const time = this.time.now / 1000;
@@ -555,8 +618,8 @@ class TapCricketScene extends Phaser.Scene {
     this.shadowOffset.x = 2 + xOffset;
     this.shadowOffset.y = 2 + yOffset;
 
-    // Apply to score text
-    if (this.scoreText) {
+    // Apply to score text - check if it exists and is active
+    if (this.scoreText && this.scoreText.active && this.scoreText.scene) {
       this.scoreText.setShadow(
         this.shadowOffset.x,
         this.shadowOffset.y,
@@ -566,14 +629,21 @@ class TapCricketScene extends Phaser.Scene {
       );
     }
 
-    // Apply to delivery text if visible
-    if (this.deliveryText && this.deliveryText.alpha > 0) {
-      const deliveryGlow = this.deliveryText.style.shadowColor || "#000000";
+    // Apply to delivery text if visible - check if it exists and is active
+    if (
+      this.deliveryText &&
+      this.deliveryText.active &&
+      this.deliveryText.scene &&
+      this.deliveryText.alpha > 0
+    ) {
+      const deliveryGlow =
+        (this.deliveryText.style && this.deliveryText.style.shadowColor) ||
+        "#000000";
       this.deliveryText.setShadow(
         this.shadowOffset.x,
         this.shadowOffset.y,
         deliveryGlow,
-        this.deliveryText.style.shadowBlur || 2,
+        (this.deliveryText.style && this.deliveryText.style.shadowBlur) || 2,
         true
       );
     }
@@ -584,8 +654,8 @@ class TapCricketScene extends Phaser.Scene {
     const height = this.scale.gameSize.height;
     const isPortrait = height > width;
 
-    // Update game objects for new orientation
-    if (this.scoreText) {
+    // Update game objects for new orientation - check if they exist and are active
+    if (this.scoreText && this.scoreText.active && this.scoreText.scene) {
       const scoreSize = Math.min(width * (isPortrait ? 0.08 : 0.06), 40);
       const scoreMarginTop = Math.min(width * 0.04, 20);
 
@@ -593,7 +663,11 @@ class TapCricketScene extends Phaser.Scene {
       this.scoreText.setPosition(width * 0.05, scoreMarginTop);
     }
 
-    if (this.deliveryText) {
+    if (
+      this.deliveryText &&
+      this.deliveryText.active &&
+      this.deliveryText.scene
+    ) {
       const deliverySize = Math.min(width * (isPortrait ? 0.045 : 0.03), 24);
       this.deliveryText.setFontSize(deliverySize);
       this.deliveryText.setPosition(width * 0.05, height * 0.08);
@@ -601,19 +675,39 @@ class TapCricketScene extends Phaser.Scene {
 
     // Update crease position
     this.creaseY = isPortrait ? height - 150 : height - 100;
-    if (this.creaseGraphics) {
-      this.creaseGraphics.clear();
-      this.creaseGraphics.lineStyle(4, 0xffffff, 0.8);
-      this.creaseGraphics.lineBetween(
-        width * 0.3,
-        this.creaseY,
-        width * 0.7,
-        this.creaseY
-      );
+    if (
+      this.creaseGraphics &&
+      this.creaseGraphics.active &&
+      this.creaseGraphics.scene
+    ) {
+      try {
+        this.creaseGraphics.clear();
+        this.creaseGraphics.lineStyle(4, 0xffffff, 0.8);
+        this.creaseGraphics.lineBetween(
+          width * 0.3,
+          this.creaseY,
+          width * 0.7,
+          this.creaseY
+        );
+      } catch (error) {
+        console.error("Error updating crease graphics:", error);
+        // Recreate as rectangle if graphics operations fail
+        if (this.creaseGraphics && this.creaseGraphics.destroy) {
+          this.creaseGraphics.destroy();
+        }
+        this.creaseGraphics = this.add.rectangle(
+          width / 2,
+          this.creaseY,
+          width * 0.4,
+          4,
+          0xffffff,
+          0.8
+        );
+      }
     }
 
     // Update stumps position
-    if (this.stumps) {
+    if (this.stumps && this.stumps.active && this.stumps.scene) {
       this.stumps.setPosition(
         width / 2,
         isPortrait ? height - 80 : height - 60
@@ -622,7 +716,7 @@ class TapCricketScene extends Phaser.Scene {
     }
 
     // Update bat position
-    if (this.bat) {
+    if (this.bat && this.bat.active && this.bat.scene) {
       this.bat.setPosition(width / 2, isPortrait ? height - 120 : height - 90);
       this.bat.setSize(isPortrait ? 8 : 6, isPortrait ? 40 : 30);
     }
@@ -631,8 +725,7 @@ class TapCricketScene extends Phaser.Scene {
 
 const config = {
   type: Phaser.AUTO,
-  width: 480,
-  height: 800, // tall orientation
+  parent: "game",
   physics: {
     default: "arcade",
     arcade: { debug: false },
@@ -641,7 +734,6 @@ const config = {
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
-    parent: "game",
     width: 480,
     height: 800,
     min: {
