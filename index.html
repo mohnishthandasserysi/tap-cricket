@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Tap Cricket — Skeleton</title>
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
+    />
+    <style>
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        background: #0b0f1a;
+      }
+      #game {
+        width: 100%;
+        height: 100%;
+        touch-action: manipulation;
+      }
+      /* Optional: prevent long-press menus on mobile */
+      * {
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+    </style>
+    <!-- Phaser 3 -->
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+  </head>
+  <body>
+    <div id="game"></div>
+    <script src="index.js"></script>
+    <!-- <script>
+      // ------------------------------
+      // Tap Cricket — Phaser 3 Skeleton
+      // ------------------------------
+
+      // --- Tunables / Game constants ---
+      const G = {
+        W: 360, // logical width
+        H: 640, // logical height
+        CONTACT_X: 80, // where the bat "meets" the ball (x-axis)
+        MIN_SPEED: 180, // px/sec (ball travel speed)
+        MAX_SPEED: 320,
+        PERFECT_WINDOW: 10, // px window for SIX
+        GOOD_WINDOW: 22, // px window for FOUR
+        OK_WINDOW: 36, // px window for SINGLE
+        BOWL_COOLDOWN_MS: 600, // delay before next ball
+        OUT_PAUSE_MS: 900, // pause after OUT
+        MAX_WICKETS: 3, // innings ends after these outs
+        LOCAL_KEY: "tapcricket_highscore_v1",
+      };
+
+      // --- Simple game state machine enums ---
+      const STATE = {
+        READY: "READY", // waiting to bowl / start
+        IN_PLAY: "IN_PLAY", // ball traveling
+        RESOLVE: "RESOLVE", // resolving hit animation
+        OUT: "OUT", // wicket animation
+        OVER: "OVER", // game over
+      };
+
+      // Utility: make a reusable texture from Graphics (no external assets)
+      function makeCircleTexture(scene, key, radius) {
+        const g = scene.make.graphics({ x: 0, y: 0, add: false });
+        g.fillStyle(0xffffff, 1);
+        g.fillCircle(radius, radius, radius);
+        g.generateTexture(key, radius * 2, radius * 2);
+        g.destroy();
+      }
+
+      function makeRectTexture(scene, key, w, h, color = 0xffffff) {
+        const g = scene.make.graphics({ x: 0, y: 0, add: false });
+        g.fillStyle(color, 1);
+        g.fillRect(0, 0, w, h);
+        g.generateTexture(key, w, h);
+        g.destroy();
+      }
+
+      // ------------------------------
+      // Boot Scene: create simple textures, go to Play
+      // ------------------------------
+      class BootScene extends Phaser.Scene {
+        constructor() {
+          super("Boot");
+        }
+        preload() {
+          /* No external assets for skeleton */
+        }
+        create() {
+          makeCircleTexture(this, "ball", 8);
+          makeRectTexture(this, "bat", 8, 48, 0xffe08a);
+          makeRectTexture(this, "pitch", G.W, G.H, 0x083c2c);
+          makeRectTexture(this, "crease", 4, G.H, 0xffffff);
+          this.scene.start("Play");
+        }
+      }
+
+      // ------------------------------
+      // Play Scene: core gameplay loop
+      // ------------------------------
+      class PlayScene extends Phaser.Scene {
+        constructor() {
+          super("Play");
+        }
+
+        init() {
+          this.state = STATE.READY;
+          this.score = 0;
+          this.wickets = 0;
+          this.best = Number(localStorage.getItem(G.LOCAL_KEY) || 0);
+
+          this.ball = null;
+          this.ballSpeed = 0;
+          this.swingUsed = false;
+          this.inputEnabled = true;
+        }
+
+        create() {
+          // Background pitch
+          this.add.image(G.W / 2, G.H / 2, "pitch").setAlpha(0.95);
+
+          // Crease (contact line)
+          const crease = this.add
+            .image(G.CONTACT_X, G.H / 2, "crease")
+            .setAlpha(0.25);
+
+          // Bat (visual aid at contact)
+          this.bat = this.add
+            .image(G.CONTACT_X + 14, G.H / 2, "bat")
+            .setOrigin(0.5)
+            .setAlpha(0.9);
+
+          // HUD
+          this.scoreText = this.add.text(12, 10, "Score: 0", {
+            font: "700 20px system-ui",
+            fill: "#fff",
+          });
+          this.bestText = this.add
+            .text(G.W - 12, 10, `Best: ${this.best}`, {
+              font: "700 20px system-ui",
+              fill: "#fff",
+            })
+            .setOrigin(1, 0);
+          this.wicketText = this.add.text(12, 36, "Wickets: 0/3", {
+            font: "600 16px system-ui",
+            fill: "#d9ffea",
+          });
+
+          this.banner = this.add
+            .text(G.W / 2, G.H * 0.18, "Tap Cricket", {
+              font: "800 28px system-ui",
+              fill: "#ffffff",
+            })
+            .setOrigin(0.5);
+
+          this.help = this.add
+            .text(
+              G.W / 2,
+              G.H * 0.24,
+              "Tap when the ball reaches the crease!",
+              {
+                font: "600 14px system-ui",
+                fill: "#e9fff6",
+              }
+            )
+            .setOrigin(0.5)
+            .setAlpha(0.9);
+
+          this.resultText = this.add
+            .text(G.W / 2, G.H * 0.34, "", {
+              font: "800 36px system-ui",
+              fill: "#ffffff",
+            })
+            .setOrigin(0.5)
+            .setAlpha(0);
+
+          // Input
+          this.input.on("pointerdown", this.onTap, this);
+
+          // Scale
+          this.scale.refresh();
+
+          // Start
+          this.time.delayedCall(400, () => this.bowl(), null, this);
+        }
+
+        // Spawn a new ball
+        bowl() {
+          if (this.state === STATE.OVER) return;
+
+          this.state = STATE.READY;
+          this.resultText.setAlpha(0);
+          this.swingUsed = false;
+
+          const y = Phaser.Math.Clamp(
+            Phaser.Math.Between(G.H * 0.3, G.H * 0.7),
+            120,
+            G.H - 120
+          );
+          const startX = G.W + 16;
+
+          if (this.ball) this.ball.destroy();
+          this.ball = this.add.image(startX, y, "ball").setData("alive", true);
+          this.ballSpeed = Phaser.Math.Between(G.MIN_SPEED, G.MAX_SPEED);
+
+          this.state = STATE.IN_PLAY;
+        }
+
+        // Handle tap
+        onTap() {
+          if (!this.inputEnabled) return;
+          if (this.state !== STATE.IN_PLAY) return;
+          if (!this.ball || !this.ball.getData("alive")) return;
+          if (this.swingUsed) return; // one swing per delivery
+
+          this.swingUsed = true;
+
+          const dx = Math.abs(this.ball.x - G.CONTACT_X);
+
+          if (dx <= G.PERFECT_WINDOW) {
+            this.onHit("SIX");
+          } else if (dx <= G.GOOD_WINDOW) {
+            this.onHit("FOUR");
+          } else if (dx <= G.OK_WINDOW) {
+            this.onHit("SINGLE");
+          } else {
+            this.onWicket("Early/Late!");
+          }
+        }
+
+        onHit(type) {
+          this.state = STATE.RESOLVE;
+          let runs = 0;
+
+          if (type === "SIX") runs = 6;
+          else if (type === "FOUR") runs = 4;
+          else runs = 1;
+
+          this.score += runs;
+          this.updateHUD();
+
+          // Feedback text
+          this.flashResult(type);
+
+          // Simple hit animation
+          const angle =
+            type === "SIX"
+              ? Phaser.Math.DegToRad(Phaser.Math.Between(-50, -20))
+              : type === "FOUR"
+              ? Phaser.Math.DegToRad(Phaser.Math.Between(-10, 10))
+              : Phaser.Math.DegToRad(Phaser.Math.Between(-25, -5));
+
+          const power = type === "SIX" ? 420 : type === "FOUR" ? 320 : 220;
+          const destX = this.ball.x + Math.cos(angle) * power;
+          const destY = this.ball.y + Math.sin(angle) * power;
+
+          this.tweens.add({
+            targets: this.ball,
+            x: destX,
+            y: destY,
+            alpha: 0.2,
+            duration: 500,
+            ease: "Quad.Out",
+            onComplete: () => {
+              if (this.score > this.best) {
+                this.best = this.score;
+                localStorage.setItem(G.LOCAL_KEY, String(this.best));
+                this.bestText.setText(`Best: ${this.best}`);
+              }
+              this.time.delayedCall(G.BOWL_COOLDOWN_MS, () => this.bowl());
+            },
+          });
+        }
+
+        onWicket(reason = "Out!") {
+          this.state = STATE.OUT;
+          this.wickets += 1;
+          this.updateHUD();
+          this.flashResult("OUT!");
+
+          // Wicket animation: drop the ball / fade
+          this.tweens.add({
+            targets: this.ball,
+            y: this.ball.y + 50,
+            alpha: 0,
+            duration: 300,
+            ease: "Quad.In",
+            onComplete: () => {
+              if (this.wickets >= G.MAX_WICKETS) {
+                this.gameOver();
+              } else {
+                this.time.delayedCall(G.OUT_PAUSE_MS, () => this.bowl());
+              }
+            },
+          });
+        }
+
+        flashResult(text) {
+          this.resultText.setText(text);
+          this.resultText.setScale(0.6);
+          this.resultText.setAlpha(0.0);
+          this.tweens.add({
+            targets: this.resultText,
+            alpha: 1,
+            scale: 1.0,
+            duration: 180,
+            ease: "Back.Out",
+            yoyo: false,
+          });
+        }
+
+        gameOver() {
+          this.state = STATE.OVER;
+          this.resultText.setText("GAME OVER");
+          this.resultText.setAlpha(1);
+          this.banner.setText("Tap to Replay");
+          this.help.setText("Your best is saved locally.");
+
+          // Enable tap to restart
+          this.input.once("pointerdown", () => this.scene.restart());
+        }
+
+        updateHUD() {
+          this.scoreText.setText(`Score: ${this.score}`);
+          this.wicketText.setText(`Wickets: ${this.wickets}/${G.MAX_WICKETS}`);
+        }
+
+        // Core update loop: move ball and auto-wicket if it passes crease without a tap
+        update(time, delta) {
+          if (this.state !== STATE.IN_PLAY || !this.ball) return;
+
+          const dt = delta / 1000;
+          this.ball.x -= this.ballSpeed * dt;
+
+          // Auto wicket if ball crosses well beyond contact zone without swing
+          if (this.ball.x < G.CONTACT_X - G.OK_WINDOW - 2 && !this.swingUsed) {
+            this.onWicket("Missed!");
+          }
+
+          // If somehow ball goes off left without being resolved
+          if (this.ball.x < -16 && this.state === STATE.IN_PLAY) {
+            this.onWicket("Missed!");
+          }
+
+          // Tiny bat wiggle while ball is near (visual cue)
+          const near = Math.max(
+            0,
+            1 - Math.abs(this.ball.x - G.CONTACT_X) / 80
+          );
+          this.bat.rotation = Phaser.Math.DegToRad(near * 12);
+        }
+      }
+
+      // ------------------------------
+      // Game config & start
+      // ------------------------------
+      const config = {
+        type: Phaser.AUTO,
+        parent: "game",
+        width: G.W,
+        height: G.H,
+        backgroundColor: "#0b0f1a",
+        scene: [BootScene, PlayScene],
+        fps: { target: 60, forceSetTimeOut: true },
+        scale: {
+          mode: Phaser.Scale.FIT,
+          autoCenter: Phaser.Scale.CENTER_BOTH,
+        },
+      };
+
+      new Phaser.Game(config);
+    </script> -->
+  </body>
+</html>
