@@ -26,7 +26,16 @@ class TapCricketScene extends Phaser.Scene {
       frameHeight: 600, // Estimated - adjust based on actual dimensions
     });
 
-    // this.load.image("stumps", "assets/stumps.png"); // stumps image (bottom)
+    // Load wicket sprite sheet
+    this.load.spritesheet("wicket", "assets/wicket.png", {
+      frameWidth: 540, // Half of 540 since we have 2 frames
+      frameHeight: 302,
+    });
+
+    // Debug loading
+    this.load.on("complete", () => {
+      console.log("Wicket sprite sheet loaded:", this.textures.get("wicket"));
+    });
     // this.load.image("bat", "assets/bat.png"); // bat sprite (replaced with spritesheet)
   }
 
@@ -67,7 +76,6 @@ class TapCricketScene extends Phaser.Scene {
     // Add visible batting crease line (simplified)
     try {
       this.creaseGraphics = this.add.graphics();
-      this.creaseGraphics.lineStyle(4, 0xffffff, 0.8);
       this.creaseGraphics.lineBetween(
         this.scale.width * 0.3,
         this.creaseY,
@@ -87,14 +95,55 @@ class TapCricketScene extends Phaser.Scene {
       );
     }
 
-    // Add stumps at bottom (batter's perspective) - temporary rectangle
-    this.stumps = this.add.rectangle(
-      this.scale.width / 2,
-      this.scale.height - 80,
-      40,
-      60,
-      0x8b4513
-    );
+    // Add wicket at bottom (batter's perspective)
+    // Create wicket animations with debug logging
+    try {
+      // Create idle animation
+      const idleAnim = this.anims.create({
+        key: "wicket-idle",
+        frames: this.anims.generateFrameNumbers("wicket", { start: 0, end: 0 }),
+        frameRate: 8,
+        repeat: -1,
+      });
+      console.log("Idle animation created:", idleAnim);
+
+      // Create hit animation
+      const hitAnim = this.anims.create({
+        key: "wicket-hit",
+        frames: this.anims.generateFrameNumbers("wicket", { start: 0, end: 7 }),
+        frameRate: 20,
+        repeat: 0, // Only play once
+      });
+      console.log("Hit animation created:", hitAnim);
+
+      // Log all available animations
+      console.log("All animations:", this.anims.anims.entries);
+    } catch (error) {
+      console.error("Error creating animations:", error);
+    }
+
+    // Add wicket sprite and play animation
+    this.stumps = this.add
+      .sprite(this.scale.width / 2, this.scale.height - 50, "wicket") // Adjusted Y position
+      .setScale(0.6) // Increased scale to make it more visible
+      .setDepth(2) // Set a higher depth to bring it to the front
+      .setOrigin(0.5, 0.7); // Set origin to bottom center of sprite
+
+    // Debug rectangle to show wicket bounds
+
+    console.log("Wicket position:", {
+      x: this.stumps.x,
+      y: this.stumps.y,
+      originX: this.stumps.originX,
+      originY: this.stumps.originY,
+      displayHeight: this.stumps.displayHeight,
+      displayWidth: this.stumps.displayWidth,
+    });
+
+    // For debugging - add a colored rectangle behind the wicket to check its position
+
+    // Start playing the animation
+    this.stumps.play("wicket-idle");
 
     // Add batter sprite with animations or fallback
     this.createBatter();
@@ -478,6 +527,29 @@ class TapCricketScene extends Phaser.Scene {
 
   missedBall(ball) {
     console.log("Ball missed completely");
+
+    // Play wicket hit animation
+    if (this.stumps && this.stumps.active) {
+      console.log("Attempting to play wicket-hit animation");
+
+      try {
+        // Stop any current animation
+        this.stumps.stop();
+
+        // Play hit animation (frames only, no position change)
+        this.stumps.play("wicket-hit");
+        console.log("Current animation:", this.stumps.anims.currentAnim);
+
+        // Handle animation completion
+        this.stumps.once("animationcomplete", () => {
+          console.log("Hit animation complete, returning to idle");
+          this.stumps.play("wicket-idle", true); // Force play idle animation
+        });
+      } catch (error) {
+        console.error("Error playing wicket animation:", error);
+      }
+    }
+
     if (ball && ball.active) {
       ball.destroy();
     }
@@ -942,13 +1014,25 @@ class TapCricketScene extends Phaser.Scene {
       }
     }
 
-    // Update stumps position
+    // Update wicket position and scale
     if (this.stumps && this.stumps.active && this.stumps.scene) {
       this.stumps.setPosition(
         width / 2,
-        isPortrait ? height - 80 : height - 60
+        isPortrait ? height - 50 : height - 40
       );
-      this.stumps.setSize(isPortrait ? 40 : 30, isPortrait ? 60 : 45);
+      this.stumps.setScale(isPortrait ? 0.6 : 0.5);
+
+      // Ensure animation is playing
+      if (!this.stumps.anims.isPlaying) {
+        this.stumps.play("wicket-idle");
+      }
+
+      console.log("Wicket resize:", {
+        x: this.stumps.x,
+        y: this.stumps.y,
+        scale: this.stumps.scale,
+        displayHeight: this.stumps.displayHeight,
+      });
     }
 
     // Update batter position
