@@ -9,8 +9,25 @@ class TapCricketScene extends Phaser.Scene {
     // Load assets (replace with your own images)
     this.load.image("pitch", "assets/pitch.jpg"); // vertical pitch bg
     this.load.image("ball", "assets/ball.png"); // cricket ball
+
+    // Try to load batter sprite sheet, with fallback if missing
+    this.batterSpriteMissing = false;
+
+    this.load.on("loaderror", (file) => {
+      if (file.key === "batter") {
+        console.warn("Batter sprite sheet not found, will use fallback");
+        this.batterSpriteMissing = true;
+      }
+    });
+
+    // Load batter sprite sheet for animations
+    this.load.spritesheet("batter", "assets/batter.png", {
+      frameWidth: 450, // Estimated - adjust based on actual dimensions
+      frameHeight: 600, // Estimated - adjust based on actual dimensions
+    });
+
     // this.load.image("stumps", "assets/stumps.png"); // stumps image (bottom)
-    // this.load.image("bat", "assets/bat.png"); // bat sprite
+    // this.load.image("bat", "assets/bat.png"); // bat sprite (replaced with spritesheet)
   }
 
   init() {
@@ -45,7 +62,7 @@ class TapCricketScene extends Phaser.Scene {
     // Note: Ball asset is now loaded from assets/ball.png
 
     // Define batting crease position (where ball should be hit)
-    this.creaseY = this.scale.height - 150;
+    this.creaseY = this.scale.height - 150; // Back to original position before batter sprite
 
     // Add visible batting crease line (simplified)
     try {
@@ -79,14 +96,13 @@ class TapCricketScene extends Phaser.Scene {
       0x8b4513
     );
 
-    // Add bat near stumps - temporary rectangle
-    this.bat = this.add.rectangle(
-      this.scale.width / 2,
-      this.scale.height - 120,
-      8,
-      40,
-      0xdeb887
-    );
+    // Add batter sprite with animations or fallback
+    this.createBatter();
+
+    // Create batter animations (if sprite sheet loaded)
+    if (!this.batterSpriteMissing) {
+      this.createBatterAnimations();
+    }
 
     // Ball group
     this.balls = this.physics.add.group();
@@ -150,23 +166,151 @@ class TapCricketScene extends Phaser.Scene {
       });
     });
 
-    // Timer: spawn balls with varying intervals
-    this.scheduleNextBall();
+    // Start with first ball after a delay
+    this.time.delayedCall(2000, () => {
+      this.spawnBall();
+    });
+  }
+
+  createBatter() {
+    if (this.batterSpriteMissing || !this.textures.exists("batter")) {
+      // Create fallback batter using graphics
+      console.log("Creating fallback batter graphics");
+      this.createFallbackBatter();
+    } else {
+      console.log("BATTER FOUND");
+      // Use sprite sheet
+      this.batter = this.add
+        .sprite(
+          this.scale.width / 2,
+          this.scale.height - 240, // Moved forward (lower Y value = forward on pitch)
+          "batter",
+          0 // Start with first frame (ready stance)
+        )
+        .setScale(0.5);
+    }
+  }
+
+  createFallbackBatter() {
+    // Create a simple batter using basic shapes
+    this.batter = this.add.container(
+      this.scale.width / 2,
+      this.scale.height - 240 // Moved forward to match sprite position
+    );
+
+    // Head
+    const head = this.add.circle(0, -40, 8, 0xffdbac);
+
+    // Body
+    const body = this.add.rectangle(0, -20, 12, 30, 0x4169e1);
+
+    // Arms
+    const leftArm = this.add.rectangle(-8, -25, 4, 20, 0xffdbac);
+    const rightArm = this.add.rectangle(8, -25, 4, 20, 0xffdbac);
+
+    // Legs
+    const leftLeg = this.add.rectangle(-4, 0, 6, 25, 0x000080);
+    const rightLeg = this.add.rectangle(4, 0, 6, 25, 0x000080);
+
+    // Bat
+    this.batterBat = this.add.rectangle(12, -15, 3, 25, 0x8b4513);
+
+    // Add all parts to container
+    this.batter.add([
+      head,
+      body,
+      leftArm,
+      rightArm,
+      leftLeg,
+      rightLeg,
+      this.batterBat,
+    ]);
+    this.batter.setScale(0.8);
+
+    // Store original bat position for animations
+    this.batterBat.originalRotation = 0;
+  }
+
+  createBatterAnimations() {
+    // Create different batting animations based on the sprite sheet
+    // Adjust frame numbers based on actual sprite sheet layout
+
+    // Ready/Idle stance (frame 0-1, slow loop)
+    this.anims.create({
+      key: "batter-ready",
+      frames: this.anims.generateFrameNumbers("batter", { start: 0, end: 1 }),
+      frameRate: 2,
+      repeat: -1,
+    });
+
+    // Pre-swing preparation (frames 2-3)
+    this.anims.create({
+      key: "batter-prepare",
+      frames: this.anims.generateFrameNumbers("batter", { start: 2, end: 3 }),
+      frameRate: 8,
+      repeat: 0,
+    });
+
+    // Full swing animation (frames 4-7)
+    this.anims.create({
+      key: "batter-swing",
+      frames: this.anims.generateFrameNumbers("batter", { start: 4, end: 7 }),
+      frameRate: 12,
+      repeat: 0,
+    });
+
+    // Follow-through/hit animation (frames 8-9)
+    this.anims.create({
+      key: "batter-followthrough",
+      frames: this.anims.generateFrameNumbers("batter", { start: 8, end: 9 }),
+      frameRate: 6,
+      repeat: 0,
+    });
+
+    // Start with ready stance
+    this.batter.play("batter-ready");
+  }
+
+  animateFallbackSwing() {
+    // Animate the bat swing for fallback batter
+    if (this.batterBat) {
+      this.tweens.add({
+        targets: this.batterBat,
+        rotation: -1.2, // Swing bat
+        duration: 150,
+        ease: "Power2.Out",
+        yoyo: true,
+        onComplete: () => {
+          // Return to original position
+          this.batterBat.rotation = this.batterBat.originalRotation;
+        },
+      });
+    }
   }
 
   scheduleNextBall() {
-    // Variable delay between balls (1.5 to 3 seconds)
-    const delay = Phaser.Math.Between(1500, 3000);
+    // Variable delay between balls (3 to 5 seconds) - only called after current ball is finished
+    const delay = Phaser.Math.Between(3000, 5000);
+    console.log(`Next ball scheduled in ${delay}ms`);
     this.time.delayedCall(delay, () => {
+      console.log("Attempting to spawn next ball");
       this.spawnBall();
-      this.scheduleNextBall();
     });
   }
 
   spawnBall() {
     // Don't spawn if there's already an active ball
     if (this.activeBall && this.activeBall.active) {
+      console.log("Cannot spawn - ball already active");
       return;
+    }
+
+    console.log("Spawning new ball");
+
+    // Ensure batter is in ready stance for new ball
+    if (this.batter && this.batter.active && !this.batterSpriteMissing) {
+      this.batter.play("batter-ready");
+      this.batter.setFrame(0);
     }
 
     // Determine delivery type and speed
@@ -249,7 +393,7 @@ class TapCricketScene extends Phaser.Scene {
     const targetX = this.scale.width / 2;
     // Calculate realistic bounce position for good length delivery
     const remainingDistance = this.creaseY - bowlerPositionY;
-    const bounceY = bowlerPositionY + remainingDistance * 0.6; // Bounce at good length (60% of remaining distance)
+    const bounceY = bowlerPositionY + remainingDistance * 0.65; // Bounce at good length (65% of remaining distance)
 
     // Calculate arc trajectory
     this.createBowlingArc(
@@ -296,9 +440,9 @@ class TapCricketScene extends Phaser.Scene {
     ball.setData("hasBounced", true);
     ball.setData("canHit", true);
 
-    // Bounce effect - ball goes up slightly then continues to crease
+    // Bounce effect - ball goes up slightly then continues past batter
     const bounceHeight = 30;
-    const finalY = this.creaseY;
+    const finalY = this.scale.height - 200; // Pass closer to batter position
 
     // Bounce up
     this.tweens.add({
@@ -333,23 +477,41 @@ class TapCricketScene extends Phaser.Scene {
   }
 
   missedBall(ball) {
+    console.log("Ball missed completely");
     if (ball && ball.active) {
       ball.destroy();
     }
     if (this.activeBall === ball) {
       this.activeBall = null;
     }
-    // Could add "missed" feedback here
+    // Always schedule next ball after a miss
+    console.log("Scheduling next ball after miss");
+    this.scheduleNextBall();
   }
 
   swingBat() {
-    // Bat swing animation
-    this.tweens.add({
-      targets: this.bat,
-      angle: -45,
-      duration: 100,
-      yoyo: true,
-    });
+    if (this.batterSpriteMissing || !this.textures.exists("batter")) {
+      // Animate fallback batter
+      this.animateFallbackSwing();
+    } else {
+      // Play sprite animation sequence
+      this.batter.play("batter-prepare");
+
+      // After preparation, play swing
+      this.batter.once("animationcomplete-batter-prepare", () => {
+        this.batter.play("batter-swing");
+      });
+
+      // After swing, return to ready stance if no hit was successful
+      this.batter.once("animationcomplete-batter-swing", () => {
+        // Return to ready stance after a brief delay if no other animation is triggered
+        this.time.delayedCall(200, () => {
+          if (this.batter && this.batter.active) {
+            this.batter.play("batter-ready");
+          }
+        });
+      });
+    }
 
     // Check if there's an active ball that can be hit
     if (
@@ -360,26 +522,34 @@ class TapCricketScene extends Phaser.Scene {
       const ball = this.activeBall;
       const delivery = ball.getData("delivery");
 
-      // Calculate timing accuracy based on ball position relative to crease
-      const distanceFromCrease = Math.abs(ball.y - this.creaseY);
+      // Calculate timing accuracy based on ball position relative to batter
+      const batterY = this.scale.height - 240; // Batter position
+      const distanceFromBatter = Math.abs(ball.y - batterY);
       const timingAccuracy = this.calculateTimingAccuracy(
-        distanceFromCrease,
+        distanceFromBatter,
         delivery.difficulty
       );
 
-      if (timingAccuracy > 0.3) {
-        // Minimum threshold to hit
+      // Debug info
+      console.log(
+        `Ball Y: ${ball.y}, Batter Y: ${batterY}, Distance: ${distanceFromBatter}, Accuracy: ${timingAccuracy}`
+      );
+
+      if (timingAccuracy > 0.1) {
+        // Much lower threshold to hit - more forgiving
+        console.log("HIT!");
         this.hitBall(ball, delivery, timingAccuracy);
       } else {
+        console.log("MISS!");
         this.missedSwing(ball);
       }
     }
   }
 
   calculateTimingAccuracy(distance, difficulty) {
-    // Perfect timing when ball is exactly at crease (distance = 0)
-    // Accuracy decreases with distance and difficulty
-    const maxDistance = 30 + difficulty * 10; // Harder balls have smaller timing window
+    // Perfect timing when ball is near batter (distance = 0)
+    // Much larger timing window for sprite-based gameplay
+    const maxDistance = 80 + difficulty * 20; // Very generous timing window
     const accuracy = Math.max(0, 1 - distance / maxDistance);
     return accuracy;
   }
@@ -462,6 +632,33 @@ class TapCricketScene extends Phaser.Scene {
       Math.sin(hitAngle) * hitPower
     );
 
+    // Show successful hit animation
+    if (this.batterSpriteMissing || !this.textures.exists("batter")) {
+      // Fallback hit celebration - just a little jump
+      if (this.batter) {
+        this.tweens.add({
+          targets: this.batter,
+          y: this.batter.y - 10,
+          duration: 200,
+          yoyo: true,
+          ease: "Power2.Out",
+        });
+      }
+    } else {
+      this.batter.play("batter-followthrough");
+      this.batter.once("animationcomplete-batter-followthrough", () => {
+        if (this.batter && this.batter.active) {
+          this.batter.play("batter-ready");
+          // Ensure we're on the first frame
+          this.time.delayedCall(100, () => {
+            if (this.batter && this.batter.active) {
+              this.batter.setFrame(0);
+            }
+          });
+        }
+      });
+    }
+
     // Remove ball after hit animation
     this.time.delayedCall(1000, () => {
       if (ball && ball.active) {
@@ -470,12 +667,28 @@ class TapCricketScene extends Phaser.Scene {
       if (this.activeBall === ball) {
         this.activeBall = null;
       }
+      // Always schedule next ball after a hit, regardless of ball state
+      console.log("Scheduling next ball after hit");
+      this.scheduleNextBall();
     });
   }
 
   missedSwing(ball) {
     // Player swung but missed - ball continues
     console.log("Missed swing!");
+
+    // Complete swing animation even on miss, then return to ready
+    this.time.delayedCall(300, () => {
+      if (this.batter && this.batter.active) {
+        this.batter.play("batter-ready");
+        // Ensure we're on the first frame
+        this.time.delayedCall(100, () => {
+          if (this.batter && this.batter.active) {
+            this.batter.setFrame(0);
+          }
+        });
+      }
+    });
   }
 
   showRunsFeedback(runs, accuracy) {
@@ -588,11 +801,34 @@ class TapCricketScene extends Phaser.Scene {
         ball.x > this.scale.width + 100
       ) {
         if (this.activeBall === ball) {
+          console.log("Cleaning up off-screen ball, scheduling next");
           this.activeBall = null;
+          // Schedule next ball if this was the active ball
+          this.scheduleNextBall();
         }
         ball.destroy();
       }
     });
+
+    // Safety check: if no active ball and no balls in scene, ensure we schedule one
+    if (!this.activeBall && this.balls.children.size === 0) {
+      // Add a longer delay for safety mechanism
+      if (!this.safetyTimeout) {
+        this.safetyTimeout = this.time.delayedCall(8000, () => {
+          console.log(
+            "Safety mechanism: No balls detected, spawning emergency ball"
+          );
+          this.spawnBall();
+          this.safetyTimeout = null;
+        });
+      }
+    } else {
+      // Cancel safety timeout if we have active balls
+      if (this.safetyTimeout) {
+        this.safetyTimeout.destroy();
+        this.safetyTimeout = null;
+      }
+    }
   }
 
   destroy() {
@@ -715,10 +951,13 @@ class TapCricketScene extends Phaser.Scene {
       this.stumps.setSize(isPortrait ? 40 : 30, isPortrait ? 60 : 45);
     }
 
-    // Update bat position
-    if (this.bat && this.bat.active && this.bat.scene) {
-      this.bat.setPosition(width / 2, isPortrait ? height - 120 : height - 90);
-      this.bat.setSize(isPortrait ? 8 : 6, isPortrait ? 40 : 30);
+    // Update batter position
+    if (this.batter && this.batter.active && this.batter.scene) {
+      this.batter.setPosition(
+        width / 2,
+        isPortrait ? height - 240 : height - 180 // Updated to match new sprite position
+      );
+      this.batter.setScale(isPortrait ? 0.5 : 0.4); // Adjusted scale for sprite
     }
   }
 }
