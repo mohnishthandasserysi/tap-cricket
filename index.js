@@ -1,5 +1,315 @@
 // Phaser is loaded globally via script tag in index.html
 
+// Start Screen Scene
+class StartScene extends Phaser.Scene {
+  constructor() {
+    super({ key: "StartScene" });
+  }
+
+  preload() {
+    // Load the same assets as main game for consistency
+    this.load.image("pitch", "assets/pitch.jpg");
+  }
+
+  create() {
+    // Add background pitch with darker overlay for start screen
+    const bg = this.add
+      .image(this.scale.width / 2, this.scale.height / 2, "pitch")
+      .setDisplaySize(this.scale.width, this.scale.height)
+      .setAlpha(0.3);
+
+    // Dark overlay for better text readability
+    this.add.rectangle(
+      this.scale.width / 2,
+      this.scale.height / 2,
+      this.scale.width,
+      this.scale.height,
+      0x000000,
+      0.6
+    );
+
+    // Main title
+    const titleSize = Math.min(this.scale.width * 0.12, 60);
+    this.add
+      .text(this.scale.width / 2, this.scale.height * 0.25, "TAP CRICKET", {
+        fontSize: `${titleSize}px`,
+        fill: "#ffffff",
+        stroke: "#000000",
+        strokeThickness: 4,
+        fontFamily: "Rubik, sans-serif",
+        fontWeight: "700",
+        letterSpacing: 3,
+      })
+      .setOrigin(0.5);
+
+    // Subtitle
+    const subtitleSize = Math.min(this.scale.width * 0.05, 24);
+    this.add
+      .text(
+        this.scale.width / 2,
+        this.scale.height * 0.35,
+        "Test your timing skills!",
+        {
+          fontSize: `${subtitleSize}px`,
+          fill: "#e9fff6",
+          fontFamily: "Rubik, sans-serif",
+          fontWeight: "400",
+        }
+      )
+      .setOrigin(0.5);
+
+    // Game rules
+    const rulesSize = Math.min(this.scale.width * 0.04, 18);
+    const rulesText =
+      "• You have 5 wickets\n• Tap when ball reaches the crease\n• Perfect timing = Maximum runs\n• Missing the ball = Lost wicket";
+    this.add
+      .text(this.scale.width / 2, this.scale.height * 0.5, rulesText, {
+        fontSize: `${rulesSize}px`,
+        fill: "#ffffff",
+        fontFamily: "Rubik, sans-serif",
+        fontWeight: "400",
+        align: "center",
+        lineSpacing: 8,
+      })
+      .setOrigin(0.5);
+
+    // High Score display
+    const highScore = Number(localStorage.getItem("tapcricket_highscore") || 0);
+    const highScoreSize = Math.min(this.scale.width * 0.045, 22);
+    this.add
+      .text(
+        this.scale.width / 2,
+        this.scale.height * 0.65,
+        `High Score: ${highScore}`,
+        {
+          fontSize: `${highScoreSize}px`,
+          fill: "#ffd700",
+          stroke: "#000000",
+          strokeThickness: 2,
+          fontFamily: "Rubik, sans-serif",
+          fontWeight: "600",
+        }
+      )
+      .setOrigin(0.5);
+
+    // Start button
+    const buttonSize = Math.min(this.scale.width * 0.06, 28);
+    const startButton = this.add
+      .text(this.scale.width / 2, this.scale.height * 0.8, "TAP TO START", {
+        fontSize: `${buttonSize}px`,
+        fill: "#44ff44",
+        stroke: "#000000",
+        strokeThickness: 3,
+        fontFamily: "Rubik, sans-serif",
+        fontWeight: "700",
+        letterSpacing: 2,
+      })
+      .setOrigin(0.5);
+
+    // Button animation
+    this.tweens.add({
+      targets: startButton,
+      alpha: 0.7,
+      duration: 800,
+      yoyo: true,
+      repeat: -1,
+      ease: "Power2",
+    });
+
+    // Input handling
+    this.input.on("pointerdown", () => {
+      this.scene.start("TapCricketScene");
+    });
+
+    // Handle resize
+    this.scale.on("resize", this.handleResize, this);
+  }
+
+  handleResize() {
+    // Update positions for responsive design
+    const width = this.scale.gameSize.width;
+    const height = this.scale.gameSize.height;
+
+    // Recreate the scene elements with new dimensions
+    this.scene.restart();
+  }
+}
+
+// Game Over Scene
+class GameOverScene extends Phaser.Scene {
+  constructor() {
+    super({ key: "GameOverScene" });
+  }
+
+  init(data) {
+    this.finalScore = data.score || 0;
+    this.highScore = data.highScore || 0;
+    this.isNewHighScore = data.isNewHighScore || false;
+  }
+
+  create() {
+    // Add background with overlay
+    this.add.rectangle(
+      this.scale.width / 2,
+      this.scale.height / 2,
+      this.scale.width,
+      this.scale.height,
+      0x000000,
+      0.8
+    );
+
+    // Game Over title
+    const titleSize = Math.min(this.scale.width * 0.1, 50);
+    this.add
+      .text(this.scale.width / 2, this.scale.height * 0.25, "GAME OVER", {
+        fontSize: `${titleSize}px`,
+        fill: "#ff4444",
+        stroke: "#000000",
+        strokeThickness: 4,
+        fontFamily: "Rubik, sans-serif",
+        fontWeight: "700",
+        letterSpacing: 2,
+      })
+      .setOrigin(0.5);
+
+    // All wickets lost message
+    const messageSize = Math.min(this.scale.width * 0.045, 22);
+    this.add
+      .text(
+        this.scale.width / 2,
+        this.scale.height * 0.35,
+        "All 5 wickets lost!",
+        {
+          fontSize: `${messageSize}px`,
+          fill: "#ffffff",
+          fontFamily: "Rubik, sans-serif",
+          fontWeight: "400",
+        }
+      )
+      .setOrigin(0.5);
+
+    // Final Score
+    const scoreSize = Math.min(this.scale.width * 0.08, 40);
+    this.add
+      .text(
+        this.scale.width / 2,
+        this.scale.height * 0.45,
+        `Final Score: ${this.finalScore}`,
+        {
+          fontSize: `${scoreSize}px`,
+          fill: "#ffffff",
+          stroke: "#000000",
+          strokeThickness: 3,
+          fontFamily: "Rubik, sans-serif",
+          fontWeight: "600",
+        }
+      )
+      .setOrigin(0.5);
+
+    // High Score with special styling if it's new
+    const highScoreColor = this.isNewHighScore ? "#ffd700" : "#44ff44";
+    const highScoreText = this.isNewHighScore
+      ? `NEW HIGH SCORE: ${this.highScore}!`
+      : `High Score: ${this.highScore}`;
+
+    this.add
+      .text(this.scale.width / 2, this.scale.height * 0.55, highScoreText, {
+        fontSize: `${scoreSize * 0.8}px`,
+        fill: highScoreColor,
+        stroke: "#000000",
+        strokeThickness: 2,
+        fontFamily: "Rubik, sans-serif",
+        fontWeight: "600",
+      })
+      .setOrigin(0.5);
+
+    // New high score celebration
+    if (this.isNewHighScore) {
+      const celebration = this.add
+        .text(
+          this.scale.width / 2,
+          this.scale.height * 0.62,
+          "🎉 CONGRATULATIONS! 🎉",
+          {
+            fontSize: `${messageSize}px`,
+            fill: "#ffd700",
+            fontFamily: "Rubik, sans-serif",
+            fontWeight: "500",
+          }
+        )
+        .setOrigin(0.5);
+
+      // Celebration animation
+      this.tweens.add({
+        targets: celebration,
+        scale: 1.1,
+        duration: 600,
+        yoyo: true,
+        repeat: -1,
+        ease: "Power2",
+      });
+    }
+
+    // Play Again button
+    const buttonSize = Math.min(this.scale.width * 0.06, 28);
+    const playAgainButton = this.add
+      .text(this.scale.width / 2, this.scale.height * 0.75, "PLAY AGAIN", {
+        fontSize: `${buttonSize}px`,
+        fill: "#44ff44",
+        stroke: "#000000",
+        strokeThickness: 3,
+        fontFamily: "Rubik, sans-serif",
+        fontWeight: "700",
+        letterSpacing: 2,
+      })
+      .setOrigin(0.5);
+
+    // Main Menu button
+    const menuButton = this.add
+      .text(this.scale.width / 2, this.scale.height * 0.85, "MAIN MENU", {
+        fontSize: `${buttonSize * 0.8}px`,
+        fill: "#ffffff",
+        stroke: "#000000",
+        strokeThickness: 2,
+        fontFamily: "Rubik, sans-serif",
+        fontWeight: "500",
+      })
+      .setOrigin(0.5);
+
+    // Button animations
+    this.tweens.add({
+      targets: playAgainButton,
+      alpha: 0.7,
+      duration: 800,
+      yoyo: true,
+      repeat: -1,
+      ease: "Power2",
+    });
+
+    // Input handling
+    this.input.on("pointerdown", (pointer) => {
+      if (
+        Phaser.Geom.Rectangle.Contains(
+          playAgainButton.getBounds(),
+          pointer.x,
+          pointer.y
+        )
+      ) {
+        this.scene.start("TapCricketScene");
+      } else if (
+        Phaser.Geom.Rectangle.Contains(
+          menuButton.getBounds(),
+          pointer.x,
+          pointer.y
+        )
+      ) {
+        this.scene.start("StartScene");
+      }
+    });
+  }
+}
+
+// Main Game Scene
 class TapCricketScene extends Phaser.Scene {
   constructor() {
     super({ key: "TapCricketScene" });
@@ -42,6 +352,9 @@ class TapCricketScene extends Phaser.Scene {
   init() {
     // Game state variables
     this.score = 0;
+    this.wickets = 0;
+    this.maxWickets = 5;
+    this.highScore = Number(localStorage.getItem("tapcricket_highscore") || 0);
     this.ballSpeed = 0;
     this.deliveryType = "";
     this.ballHasBounced = false;
@@ -171,6 +484,44 @@ class TapCricketScene extends Phaser.Scene {
         fontWeight: "700", // Bold weight for main score
         letterSpacing: 1, // Better readability for numbers
       })
+      .setScrollFactor(0);
+
+    // High Score display in top right
+    const highScoreSize = Math.min(this.scale.width * 0.06, 30);
+    this.highScoreText = this.add
+      .text(
+        this.scale.width * 0.95,
+        scoreMarginTop,
+        `High: ${this.highScore}`,
+        {
+          fontSize: `${highScoreSize}px`,
+          fill: "#ffd700",
+          stroke: "#000000",
+          strokeThickness: 3,
+          fontFamily: "Rubik, sans-serif",
+          fontWeight: "600",
+          letterSpacing: 1,
+        }
+      )
+      .setOrigin(1, 0)
+      .setScrollFactor(0);
+
+    // Wickets display
+    const wicketsSize = Math.min(this.scale.width * 0.05, 24);
+    this.wicketsText = this.add
+      .text(
+        this.scale.width * 0.05,
+        scoreMarginTop + scoreSize + 10,
+        `Wickets: ${this.wickets}/${this.maxWickets}`,
+        {
+          fontSize: `${wicketsSize}px`,
+          fill: "#ff6b6b",
+          stroke: "#000000",
+          strokeThickness: 2,
+          fontFamily: "Rubik, sans-serif",
+          fontWeight: "600",
+        }
+      )
       .setScrollFactor(0);
 
     // Delivery type display with enhanced visibility
@@ -526,7 +877,11 @@ class TapCricketScene extends Phaser.Scene {
   }
 
   missedBall(ball) {
-    console.log("Ball missed completely");
+    console.log("Ball missed completely - Wicket lost!");
+
+    // Increment wickets lost
+    this.wickets += 1;
+    this.updateWicketsDisplay();
 
     // Play wicket hit animation
     if (this.stumps && this.stumps.active) {
@@ -550,15 +905,25 @@ class TapCricketScene extends Phaser.Scene {
       }
     }
 
+    // Show wicket lost feedback
+    this.showWicketFeedback();
+
     if (ball && ball.active) {
       ball.destroy();
     }
     if (this.activeBall === ball) {
       this.activeBall = null;
     }
-    // Always schedule next ball after a miss
-    console.log("Scheduling next ball after miss");
-    this.scheduleNextBall();
+
+    // Check if game is over (all wickets lost)
+    if (this.wickets >= this.maxWickets) {
+      console.log("All wickets lost - Game Over!");
+      this.gameOver();
+    } else {
+      // Continue with next ball
+      console.log("Scheduling next ball after wicket loss");
+      this.scheduleNextBall();
+    }
   }
 
   swingBat() {
@@ -585,36 +950,58 @@ class TapCricketScene extends Phaser.Scene {
       });
     }
 
-    // Check if there's an active ball that can be hit
-    if (
-      this.activeBall &&
-      this.activeBall.active &&
-      this.activeBall.getData("canHit")
-    ) {
+    // Check if there's an active ball and provide timing feedback regardless
+    if (this.activeBall && this.activeBall.active) {
       const ball = this.activeBall;
       const delivery = ball.getData("delivery");
-
-      // Calculate timing accuracy based on ball position relative to batter
       const batterY = this.scale.height - 240; // Batter position
       const distanceFromBatter = Math.abs(ball.y - batterY);
-      const timingAccuracy = this.calculateTimingAccuracy(
-        distanceFromBatter,
-        delivery.difficulty
+      const timingFeedback = this.getTimingFeedback(
+        ball.y,
+        batterY,
+        distanceFromBatter
       );
+      const canHit = ball.getData("canHit");
 
-      // Debug info
+      // Always show timing feedback when player taps
+      console.log(`=== SWING ATTEMPT ===`);
+      console.log(`Ball Y: ${Math.round(ball.y)}, Batter Y: ${batterY}`);
+      console.log(`Distance: ${Math.round(distanceFromBatter)}`);
+      console.log(`Timing: ${timingFeedback}`);
+      console.log(`Ball can be hit: ${canHit}`);
+      console.log(`Ball has bounced: ${ball.getData("hasBounced")}`);
       console.log(
-        `Ball Y: ${ball.y}, Batter Y: ${batterY}, Distance: ${distanceFromBatter}, Accuracy: ${timingAccuracy}`
+        `Delivery: ${delivery.type} (Difficulty: ${delivery.difficulty})`
       );
 
-      if (timingAccuracy > 0.1) {
-        // Much lower threshold to hit - more forgiving
-        console.log("HIT!");
-        this.hitBall(ball, delivery, timingAccuracy);
+      if (canHit) {
+        // Ball is in hittable state
+        const timingAccuracy = this.calculateTimingAccuracy(
+          distanceFromBatter,
+          delivery.difficulty
+        );
+        console.log(`Accuracy: ${Math.round(timingAccuracy * 100)}%`);
+
+        if (timingAccuracy > 0.1) {
+          console.log(
+            `✅ HIT! (${Math.round(timingAccuracy * 100)}% accuracy)`
+          );
+          this.hitBall(ball, delivery, timingAccuracy);
+        } else {
+          console.log(`❌ MISS! You were ${timingFeedback.toLowerCase()}`);
+          this.missedSwing(ball);
+        }
       } else {
-        console.log("MISS!");
-        this.missedSwing(ball);
+        // Ball is not in hittable state yet (too early)
+        if (ball.getData("hasBounced")) {
+          console.log(`⚠️ SWING TOO LATE - Ball already past hitting zone`);
+        } else {
+          console.log(`⚠️ SWING TOO EARLY - Ball hasn't bounced yet`);
+        }
       }
+    } else {
+      // No active ball
+      console.log(`❌ NO BALL ACTIVE - Wait for next delivery`);
     }
   }
 
@@ -624,6 +1011,44 @@ class TapCricketScene extends Phaser.Scene {
     const maxDistance = 80 + difficulty * 20; // Very generous timing window
     const accuracy = Math.max(0, 1 - distance / maxDistance);
     return accuracy;
+  }
+
+  getTimingFeedback(ballY, batterY, distance) {
+    // Determine if player was early, late, or on time
+    const battingZoneStart = batterY - 60; // Zone starts 60px before batter
+    const battingZoneEnd = batterY + 40; // Zone ends 40px after batter
+
+    if (ballY < battingZoneStart) {
+      // Ball hasn't reached the batting zone yet
+      const earlyDistance = battingZoneStart - ballY;
+      if (earlyDistance > 100) {
+        return "WAY TOO EARLY";
+      } else if (earlyDistance > 50) {
+        return "TOO EARLY";
+      } else {
+        return "EARLY";
+      }
+    } else if (ballY > battingZoneEnd) {
+      // Ball has passed the batting zone
+      const lateDistance = ballY - battingZoneEnd;
+      if (lateDistance > 100) {
+        return "WAY TOO LATE";
+      } else if (lateDistance > 50) {
+        return "TOO LATE";
+      } else {
+        return "LATE";
+      }
+    } else {
+      // Ball is in the batting zone
+      const centerDistance = Math.abs(ballY - batterY);
+      if (centerDistance < 10) {
+        return "PERFECT TIMING";
+      } else if (centerDistance < 25) {
+        return "GOOD TIMING";
+      } else {
+        return "OK TIMING";
+      }
+    }
   }
 
   hitBall(ball, delivery, accuracy) {
@@ -644,6 +1069,9 @@ class TapCricketScene extends Phaser.Scene {
     this.score += runs;
     const oldScore = Number(this.scoreText.text.split(": ")[1]);
     this.scoreText.setText(`Score: ${this.score}`);
+
+    // Update high score if necessary
+    this.updateHighScore();
 
     // Animate score change
     if (this.score > oldScore) {
@@ -695,8 +1123,8 @@ class TapCricketScene extends Phaser.Scene {
     // Show runs feedback
     this.showRunsFeedback(runs, accuracy);
 
-    // Ball hit animation
-    const hitAngle = Phaser.Math.DegToRad(Phaser.Math.Between(-60, -30));
+    // Ball hit animation - send ball to the left (batter's natural direction)
+    const hitAngle = Phaser.Math.DegToRad(Phaser.Math.Between(-150, -120)); // Left side angles
     const hitPower = 200 + accuracy * 300;
 
     ball.setVelocity(
@@ -768,7 +1196,7 @@ class TapCricketScene extends Phaser.Scene {
     let color = "#ffffff";
 
     if (runs === 0) {
-      feedbackText = "MISS!";
+      feedbackText = "NO RUNS!";
       color = "#ff4444";
     } else if (accuracy > 0.8) {
       feedbackText = `${runs} RUNS! PERFECT!`;
@@ -862,6 +1290,143 @@ class TapCricketScene extends Phaser.Scene {
         },
       });
     }
+  }
+
+  // Helper method to update wickets display
+  updateWicketsDisplay() {
+    if (this.wicketsText && this.wicketsText.active && this.wicketsText.scene) {
+      this.wicketsText.setText(`Wickets: ${this.wickets}/${this.maxWickets}`);
+
+      // Change color based on wickets remaining
+      if (this.wickets >= this.maxWickets - 1) {
+        this.wicketsText.setColor("#ff0000"); // Red for last wicket
+      } else if (this.wickets >= this.maxWickets - 2) {
+        this.wicketsText.setColor("#ff6600"); // Orange for second-to-last
+      } else {
+        this.wicketsText.setColor("#ff6b6b"); // Default red
+      }
+    }
+  }
+
+  // Helper method to update high score
+  updateHighScore() {
+    if (this.score > this.highScore) {
+      this.highScore = this.score;
+      localStorage.setItem("tapcricket_highscore", String(this.highScore));
+
+      // Update high score display with animation
+      if (
+        this.highScoreText &&
+        this.highScoreText.active &&
+        this.highScoreText.scene
+      ) {
+        this.highScoreText.setText(`High: ${this.highScore}`);
+
+        // Animate new high score
+        this.tweens.add({
+          targets: this.highScoreText,
+          scale: 1.2,
+          duration: 200,
+          yoyo: true,
+          ease: "Back.easeOut",
+          onStart: () => {
+            try {
+              this.highScoreText.setShadow(0, 0, "#ffd700", 6, true, true);
+            } catch (error) {
+              console.error("Error setting high score shadow:", error);
+            }
+          },
+          onComplete: () => {
+            try {
+              this.highScoreText.setShadow(2, 2, "#000000", 3, false);
+            } catch (error) {
+              console.error("Error removing high score shadow:", error);
+            }
+          },
+        });
+      }
+    }
+  }
+
+  // Helper method to show wicket lost feedback
+  showWicketFeedback() {
+    const feedbackSize = Math.min(this.scale.width * 0.1, 48);
+    const feedback = this.add
+      .text(this.scale.width / 2, this.scale.height * 0.4, "WICKET LOST!", {
+        fontSize: `${feedbackSize}px`,
+        fill: "#ff0000",
+        stroke: "#000000",
+        strokeThickness: 4,
+        fontFamily: "Rubik, sans-serif",
+        fontWeight: "700",
+        align: "center",
+        letterSpacing: 2,
+      })
+      .setOrigin(0.5);
+
+    // Wicket lost animation
+    feedback.setScale(0.8).setAlpha(0);
+
+    this.tweens.add({
+      targets: feedback,
+      scale: 1.2,
+      alpha: 1,
+      duration: 300,
+      ease: "Back.easeOut",
+      onComplete: () => {
+        // Shake effect
+        this.tweens.add({
+          targets: feedback,
+          x: feedback.x - 5,
+          duration: 50,
+          yoyo: true,
+          repeat: 3,
+          onComplete: () => {
+            // Fade out
+            this.tweens.add({
+              targets: feedback,
+              alpha: 0,
+              y: feedback.y - 50,
+              scale: 0.8,
+              duration: 1000,
+              ease: "Cubic.easeOut",
+              delay: 600,
+              onComplete: () => feedback.destroy(),
+            });
+          },
+        });
+      },
+    });
+  }
+
+  // Game over method
+  gameOver() {
+    // Stop any active balls and clear timers
+    if (this.activeBall && this.activeBall.active) {
+      this.activeBall.destroy();
+      this.activeBall = null;
+    }
+
+    // Clear all scheduled events
+    this.time.removeAllEvents();
+
+    // Check if it's a new high score
+    const isNewHighScore =
+      this.score > Number(localStorage.getItem("tapcricket_highscore") || 0);
+
+    // Save high score if needed
+    if (isNewHighScore) {
+      localStorage.setItem("tapcricket_highscore", String(this.score));
+    }
+
+    // Transition to game over scene with delay for dramatic effect
+    this.time.delayedCall(1500, () => {
+      this.scene.start("GameOverScene", {
+        score: this.score,
+        highScore: this.highScore,
+        isNewHighScore: isNewHighScore,
+      });
+    });
   }
 
   update() {
@@ -971,6 +1536,32 @@ class TapCricketScene extends Phaser.Scene {
       this.scoreText.setPosition(width * 0.05, scoreMarginTop);
     }
 
+    // Update high score display
+    if (
+      this.highScoreText &&
+      this.highScoreText.active &&
+      this.highScoreText.scene
+    ) {
+      const highScoreSize = Math.min(width * (isPortrait ? 0.06 : 0.05), 30);
+      const scoreMarginTop = Math.min(width * 0.04, 20);
+
+      this.highScoreText.setFontSize(highScoreSize);
+      this.highScoreText.setPosition(width * 0.95, scoreMarginTop);
+    }
+
+    // Update wickets display
+    if (this.wicketsText && this.wicketsText.active && this.wicketsText.scene) {
+      const wicketsSize = Math.min(width * (isPortrait ? 0.05 : 0.04), 24);
+      const scoreSize = Math.min(width * (isPortrait ? 0.08 : 0.06), 40);
+      const scoreMarginTop = Math.min(width * 0.04, 20);
+
+      this.wicketsText.setFontSize(wicketsSize);
+      this.wicketsText.setPosition(
+        width * 0.05,
+        scoreMarginTop + scoreSize + 10
+      );
+    }
+
     if (
       this.deliveryText &&
       this.deliveryText.active &&
@@ -1053,7 +1644,7 @@ const config = {
     default: "arcade",
     arcade: { debug: false },
   },
-  scene: [TapCricketScene],
+  scene: [StartScene, TapCricketScene, GameOverScene],
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
