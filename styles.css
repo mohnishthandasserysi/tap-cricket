@@ -73,8 +73,8 @@ body {
 
 .stadium-background {
     position: absolute;
-    top: 0;
-    left: 0;
+    top: 1%;
+    left: 2%;
     width: 100%;
     height: 100%;
     background: url('assets/stadium-background.jpg') no-repeat center center;
@@ -87,8 +87,8 @@ body {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 300px;
-    height: 200px;
+    width: 550px;
+    height: 250px;
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     grid-template-rows: repeat(3, 1fr);
@@ -133,16 +133,19 @@ body {
     bottom: 15%;
     left: 50%;
     transform: translateX(-50%);
-    width: 40px;
-    height: 40px;
+    width: 70px;  /* Increased by 5% from 32px */
+    height: 70px; /* Increased by 5% from 32px */
     z-index: 10;
 }
 
 .ball-sprite {
     width: 100%;
     height: 100%;
-    background: url('assets/ball.png') no-repeat center center;
+    background: url('assets/ball-sprite.jpg') no-repeat center center;
     background-size: contain;
+    image-rendering: pixelated; /* Keep pixel art sharp */
+    transform-origin: center;
+    animation: rotateBall 2s linear infinite;
 }
 
 .ball-shadow {
@@ -150,11 +153,20 @@ body {
     bottom: -5px;
     left: 50%;
     transform: translateX(-50%);
-    width: 30px;
-    height: 10px;
+    width: 26px;  /* Increased by 5% from 24px */
+    height: 8px;
     background: rgba(0, 0, 0, 0.3);
     border-radius: 50%;
     filter: blur(2px);
+}
+
+@keyframes rotateBall {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 /* Power Meter */
@@ -259,13 +271,13 @@ body {
 /* Ball Animation */
 @keyframes shootBall {
     0% {
-        transform: translateX(-50%) translateY(0) scale(1) rotate(0deg);
+        transform: translateX(-50%) translateY(0) scale(1);
     }
     50% {
-        transform: translateX(var(--shoot-x)) translateY(-200px) scale(0.8) rotate(180deg);
+        transform: translateX(var(--shoot-x)) translateY(-200px) scale(0.9);
     }
     100% {
-        transform: translateX(var(--shoot-x)) translateY(-300px) scale(1) rotate(360deg);
+        transform: translateX(var(--shoot-x)) translateY(-300px) scale(1);
     }
 }
 
