@@ -512,7 +512,7 @@ class TapCricketScene extends Phaser.Scene {
       .text(
         this.scale.width * 0.05,
         scoreMarginTop + scoreSize + 10,
-        `Wickets: ${this.wickets}/${this.maxWickets}`,
+        `Wickets Left: ${this.maxWickets - this.wickets}`,
         {
           fontSize: `${wicketsSize}px`,
           fill: "#ff6b6b",
@@ -524,10 +524,10 @@ class TapCricketScene extends Phaser.Scene {
       )
       .setScrollFactor(0);
 
-    // Delivery type display with enhanced visibility
+    // Delivery type display with enhanced visibility - positioned to avoid overlap
     const deliverySize = Math.min(this.scale.width * 0.06, 28); // Slightly larger
     this.deliveryText = this.add
-      .text(this.scale.width * 0.05, this.scale.height * 0.08, "", {
+      .text(this.scale.width / 2, this.scale.height * 0.12, "", {
         fontSize: `${deliverySize}px`,
         fill: "#ffffff", // Default color, will be changed per delivery
         stroke: "#000000",
@@ -536,6 +536,7 @@ class TapCricketScene extends Phaser.Scene {
         fontWeight: "700", // Keep bold for readability
         letterSpacing: 4, // Increased letter spacing for better readability
       })
+      .setOrigin(0.5, 0.5) // Center the text
       .setScrollFactor(0);
 
     // Enhanced touch input handling
@@ -1123,14 +1124,8 @@ class TapCricketScene extends Phaser.Scene {
     // Show runs feedback
     this.showRunsFeedback(runs, accuracy);
 
-    // Ball hit animation - send ball to the left (batter's natural direction)
-    const hitAngle = Phaser.Math.DegToRad(Phaser.Math.Between(-150, -120)); // Left side angles
-    const hitPower = 200 + accuracy * 300;
-
-    ball.setVelocity(
-      Math.cos(hitAngle) * hitPower,
-      Math.sin(hitAngle) * hitPower
-    );
+    // Realistic cricket ball trajectory based on runs scored
+    this.animateBallTrajectory(ball, runs, accuracy);
 
     // Show successful hit animation
     if (this.batterSpriteMissing || !this.textures.exists("batter")) {
@@ -1158,19 +1153,6 @@ class TapCricketScene extends Phaser.Scene {
         }
       });
     }
-
-    // Remove ball after hit animation
-    this.time.delayedCall(1000, () => {
-      if (ball && ball.active) {
-        ball.destroy();
-      }
-      if (this.activeBall === ball) {
-        this.activeBall = null;
-      }
-      // Always schedule next ball after a hit, regardless of ball state
-      console.log("Scheduling next ball after hit");
-      this.scheduleNextBall();
-    });
   }
 
   missedSwing(ball) {
@@ -1292,15 +1274,215 @@ class TapCricketScene extends Phaser.Scene {
     }
   }
 
+  // Animate realistic cricket ball trajectory based on runs scored
+  animateBallTrajectory(ball, runs, accuracy) {
+    // Stop any existing ball tweens
+    this.tweens.killTweensOf(ball);
+
+    // Define field zones based on screen dimensions
+    const batterX = this.scale.width / 2;
+    const batterY = this.scale.height - 240;
+
+    // Define trajectory zones
+    const innerField = {
+      minDistance: 120,
+      maxDistance: 200,
+    };
+
+    const boundary = {
+      distance: 280,
+    };
+
+    const crowd = {
+      distance: 350,
+      height: -150, // High arc for sixes
+    };
+
+    let targetX, targetY, trajectory, duration;
+
+    if (runs === 0) {
+      // Ball caught or no runs - very short distance (forward)
+      targetX = batterX + Phaser.Math.Between(-30, 30);
+      targetY = batterY - Phaser.Math.Between(20, 60); // Forward direction
+      trajectory = "ground";
+      duration = 400;
+    } else if (runs >= 1 && runs <= 3) {
+      // 1-3 runs: Inner field, ground shots (left side)
+      const angle = Phaser.Math.DegToRad(Phaser.Math.Between(120, 160)); // Left side angles
+      const distance = Phaser.Math.Between(
+        innerField.minDistance,
+        innerField.maxDistance
+      );
+
+      targetX = batterX + Math.cos(angle) * distance;
+      targetY = batterY + Math.sin(angle) * distance; // Forward
+      trajectory = "ground";
+      duration = 600;
+    } else if (runs === 4) {
+      // 4 runs: Boundary shot at 45° or 60° angle (left side)
+      const shotAngle = Phaser.Math.Between(0, 1) ? 135 : 120; // 135° or 120° for left side
+      const angle = Phaser.Math.DegToRad(shotAngle);
+
+      targetX = batterX + Math.cos(angle) * boundary.distance;
+      targetY = batterY + Math.sin(angle) * boundary.distance;
+      trajectory = "boundary";
+      duration = 800;
+    } else if (runs === 5) {
+      // 5 runs: Almost a six, high but not quite over boundary (left side)
+      const angle = Phaser.Math.DegToRad(Phaser.Math.Between(110, 125)); // Left side
+
+      targetX = batterX + Math.cos(angle) * (boundary.distance + 20);
+      targetY = batterY + Math.sin(angle) * (boundary.distance + 20);
+      trajectory = "high";
+      duration = 900;
+    } else if (runs >= 6) {
+      // 6 runs: High arc toward top of screen (left side)
+      const startAngle = 120; // Start at 120° (left-up)
+      const endAngle = 150; // End at 150° (higher left-up)
+
+      // Calculate intermediate and final positions
+      const startAngleRad = Phaser.Math.DegToRad(startAngle);
+      const endAngleRad = Phaser.Math.DegToRad(endAngle);
+
+      targetX = batterX + Math.cos(endAngleRad) * crowd.distance;
+      targetY = batterY + Math.sin(endAngleRad) * crowd.distance; // This will be toward top
+      trajectory = "six";
+      duration = 1000;
+    }
+
+    // Ensure ball stays within screen bounds
+    targetX = Phaser.Math.Clamp(targetX, 50, this.scale.width - 50);
+    targetY = Phaser.Math.Clamp(targetY, 100, this.scale.height - 100);
+
+    // Animate based on trajectory type
+    if (trajectory === "ground") {
+      // Low ground shot
+      this.tweens.add({
+        targets: ball,
+        x: targetX,
+        y: targetY,
+        duration: duration,
+        ease: "Quad.Out",
+        onComplete: () => {
+          this.completeBallAnimation(ball);
+        },
+      });
+    } else if (trajectory === "boundary") {
+      // Boundary shot - straight to the left, off screen
+      // Make the ball go well beyond the screen boundary
+      const offScreenX = -100; // Far left, off screen
+
+      this.tweens.add({
+        targets: ball,
+        x: offScreenX,
+        y: targetY,
+        duration: duration,
+        ease: "Quad.Out",
+        onComplete: () => {
+          this.completeBallAnimation(ball);
+        },
+      });
+    } else if (trajectory === "high") {
+      // High shot but not quite a six
+      const arcHeight = batterY - 80;
+
+      this.tweens.add({
+        targets: ball,
+        x: targetX,
+        duration: duration,
+        ease: "Quad.Out",
+      });
+
+      this.tweens.add({
+        targets: ball,
+        y: arcHeight,
+        duration: duration * 0.5,
+        ease: "Quad.Out",
+        onComplete: () => {
+          this.tweens.add({
+            targets: ball,
+            y: targetY,
+            duration: duration * 0.5,
+            ease: "Quad.In",
+            onComplete: () => {
+              this.completeBallAnimation(ball);
+            },
+          });
+        },
+      });
+    } else if (trajectory === "six") {
+      // Six - high arc toward top of screen (left side)
+      const startAngle = 120;
+      const endAngle = 150;
+      const startAngleRad = Phaser.Math.DegToRad(startAngle);
+      const endAngleRad = Phaser.Math.DegToRad(endAngle);
+
+      // Calculate high arc trajectory points
+      const peakDistance = crowd.distance * 0.7;
+      const peakX = batterX + Math.cos(startAngleRad) * peakDistance;
+      const peakY = batterY - Math.sin(startAngleRad) * peakDistance * 0.8; // High up (negative Y = up)
+
+      // Create high arc that goes toward top of screen
+      const finalX = batterX + Math.cos(endAngleRad) * crowd.distance;
+      const finalY = batterY - Math.sin(endAngleRad) * crowd.distance; // Toward top (negative Y = up)
+
+      // First phase: Rise high at 120° angle
+      this.tweens.add({
+        targets: ball,
+        x: peakX,
+        y: peakY,
+        duration: duration * 0.6,
+        ease: "Quad.Out",
+        onComplete: () => {
+          // Second phase: Continue upward arc to top of screen
+          this.tweens.add({
+            targets: ball,
+            x: finalX,
+            y: finalY,
+            duration: duration * 0.4,
+            ease: "Quad.Out",
+            onComplete: () => {
+              // For sixes, ball disappears into crowd (top of screen)
+              this.tweens.add({
+                targets: ball,
+                alpha: 0,
+                scale: 0.5,
+                y: finalY - 50, // Move slightly higher as it fades
+                duration: 300,
+                onComplete: () => {
+                  this.completeBallAnimation(ball);
+                },
+              });
+            },
+          });
+        },
+      });
+    }
+  }
+
+  // Complete ball animation and schedule next ball
+  completeBallAnimation(ball) {
+    if (ball && ball.active) {
+      ball.destroy();
+    }
+    if (this.activeBall === ball) {
+      this.activeBall = null;
+    }
+    // Always schedule next ball after animation completes
+    console.log("Scheduling next ball after hit animation");
+    this.scheduleNextBall();
+  }
+
   // Helper method to update wickets display
   updateWicketsDisplay() {
     if (this.wicketsText && this.wicketsText.active && this.wicketsText.scene) {
-      this.wicketsText.setText(`Wickets: ${this.wickets}/${this.maxWickets}`);
+      const wicketsLeft = this.maxWickets - this.wickets;
+      this.wicketsText.setText(`Wickets Left: ${wicketsLeft}`);
 
       // Change color based on wickets remaining
-      if (this.wickets >= this.maxWickets - 1) {
+      if (wicketsLeft <= 1) {
         this.wicketsText.setColor("#ff0000"); // Red for last wicket
-      } else if (this.wickets >= this.maxWickets - 2) {
+      } else if (wicketsLeft <= 2) {
         this.wicketsText.setColor("#ff6600"); // Orange for second-to-last
       } else {
         this.wicketsText.setColor("#ff6b6b"); // Default red
@@ -1567,9 +1749,9 @@ class TapCricketScene extends Phaser.Scene {
       this.deliveryText.active &&
       this.deliveryText.scene
     ) {
-      const deliverySize = Math.min(width * (isPortrait ? 0.045 : 0.03), 24);
+      const deliverySize = Math.min(width * (isPortrait ? 0.06 : 0.05), 28);
       this.deliveryText.setFontSize(deliverySize);
-      this.deliveryText.setPosition(width * 0.05, height * 0.08);
+      this.deliveryText.setPosition(width / 2, height * 0.12);
     }
 
     // Update crease position
