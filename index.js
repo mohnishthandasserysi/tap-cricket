@@ -28,97 +28,214 @@ class StartScene extends Phaser.Scene {
       0.6
     );
 
-    // Main title
-    const titleSize = Math.min(this.scale.width * 0.12, 60);
-    this.add
-      .text(this.scale.width / 2, this.scale.height * 0.25, "TAP CRICKET", {
+    // Create a container for better organization
+    const container = this.add.container(this.scale.width / 2, 0);
+
+    // Main title with enhanced styling
+    const titleSize = Math.min(this.scale.width * 0.14, 70);
+    const title = this.add
+      .text(0, this.scale.height * 0.22, "TAP CRICKET", {
         fontSize: `${titleSize}px`,
         fill: "#ffffff",
-        stroke: "#000000",
-        strokeThickness: 4,
+        stroke: "#1B4D3E",
+        strokeThickness: 8,
         fontFamily: "Rubik, sans-serif",
-        fontWeight: "700",
-        letterSpacing: 3,
+        fontWeight: "800",
+        letterSpacing: 4,
       })
       .setOrigin(0.5);
 
-    // Subtitle
-    const subtitleSize = Math.min(this.scale.width * 0.05, 24);
-    this.add
-      .text(
-        this.scale.width / 2,
-        this.scale.height * 0.35,
-        "Test your timing skills!",
-        {
-          fontSize: `${subtitleSize}px`,
-          fill: "#e9fff6",
-          fontFamily: "Rubik, sans-serif",
-          fontWeight: "400",
-        }
+    // Add glow effect to title
+    title.setPipeline("Light2D");
+    title.preFX.addGlow(0xffffff, 2, 0, false, 0.1, 6);
+
+    // Subtitle with better contrast
+    const subtitleSize = Math.min(this.scale.width * 0.055, 26);
+    const subtitle = this.add
+      .text(0, this.scale.height * 0.32, "Test your timing skills!", {
+        fontSize: `${subtitleSize}px`,
+        fill: "#FFE5B4", // Peach color for warmth
+        stroke: "#000000",
+        strokeThickness: 2,
+        fontFamily: "Rubik, sans-serif",
+        fontWeight: "500",
+        letterSpacing: 1,
+      })
+      .setOrigin(0.5);
+
+    // Create a semi-transparent panel for rules
+    const panelWidth = this.scale.width * 0.8;
+    const panelHeight = this.scale.height * 0.25;
+    const panel = this.add
+      .rectangle(
+        0,
+        this.scale.height * 0.5,
+        panelWidth,
+        panelHeight,
+        0x000000,
+        0.3
       )
       .setOrigin(0.5);
 
-    // Game rules
-    const rulesSize = Math.min(this.scale.width * 0.04, 18);
-    const rulesText =
-      "• You have 5 wickets\n• Tap when ball reaches the crease\n• Perfect timing = Maximum runs\n• Missing the ball = Lost wicket";
-    this.add
-      .text(this.scale.width / 2, this.scale.height * 0.5, rulesText, {
+    // Add a border to the panel
+    const border = this.add
+      .rectangle(
+        0,
+        this.scale.height * 0.5,
+        panelWidth,
+        panelHeight,
+        0xffffff,
+        0
+      )
+      .setOrigin(0.5);
+    border.setStrokeStyle(2, 0xffffff, 0.3);
+
+    // Game rules with icons and better spacing
+    const rulesSize = Math.min(this.scale.width * 0.042, 20);
+    const rulesText = [
+      "🏏  You have 5 wickets",
+      "⚡  Tap when ball reaches the crease",
+      "🎯  Perfect timing = Maximum runs",
+      "❌  Missing the ball = Lost wicket",
+    ].join("\n");
+
+    const rules = this.add
+      .text(0, this.scale.height * 0.5, rulesText, {
         fontSize: `${rulesSize}px`,
         fill: "#ffffff",
         fontFamily: "Rubik, sans-serif",
-        fontWeight: "400",
-        align: "center",
-        lineSpacing: 8,
+        fontWeight: "500",
+        align: "left",
+        lineSpacing: 16,
       })
       .setOrigin(0.5);
 
-    // High Score display
+    // High Score display with trophy icon
     const highScore = Number(localStorage.getItem("tapcricket_highscore") || 0);
-    const highScoreSize = Math.min(this.scale.width * 0.045, 22);
-    this.add
-      .text(
-        this.scale.width / 2,
-        this.scale.height * 0.65,
-        `High Score: ${highScore}`,
-        {
-          fontSize: `${highScoreSize}px`,
-          fill: "#ffd700",
-          stroke: "#000000",
-          strokeThickness: 2,
-          fontFamily: "Rubik, sans-serif",
-          fontWeight: "600",
-        }
-      )
-      .setOrigin(0.5);
-
-    // Start button
-    const buttonSize = Math.min(this.scale.width * 0.06, 28);
-    const startButton = this.add
-      .text(this.scale.width / 2, this.scale.height * 0.8, "TAP TO START", {
-        fontSize: `${buttonSize}px`,
-        fill: "#44ff44",
+    const highScoreSize = Math.min(this.scale.width * 0.05, 24);
+    const highScoreText = this.add
+      .text(0, this.scale.height * 0.7, `🏆  High Score: ${highScore}`, {
+        fontSize: `${highScoreSize}px`,
+        fill: "#FFD700",
         stroke: "#000000",
         strokeThickness: 3,
         fontFamily: "Rubik, sans-serif",
         fontWeight: "700",
-        letterSpacing: 2,
+        letterSpacing: 1,
       })
       .setOrigin(0.5);
 
-    // Button animation
+    // Create a pulsing start button
+    const buttonWidth = this.scale.width * 0.5;
+    const buttonHeight = this.scale.height * 0.08;
+    const buttonBg = this.add
+      .rectangle(
+        0,
+        this.scale.height * 0.85,
+        buttonWidth,
+        buttonHeight,
+        0x44ff44,
+        0.3
+      )
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true }); // Add hand cursor on hover
+
+    const buttonBorder = this.add
+      .rectangle(
+        0,
+        this.scale.height * 0.85,
+        buttonWidth,
+        buttonHeight,
+        0x44ff44,
+        0
+      )
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true }); // Add hand cursor on hover
+    buttonBorder.setStrokeStyle(3, 0x44ff44, 0.8);
+
+    const buttonSize = Math.min(this.scale.width * 0.06, 28);
+    const startButton = this.add
+      .text(0, this.scale.height * 0.85, "TAP TO START", {
+        fontSize: `${buttonSize}px`,
+        fill: "#ffffff",
+        stroke: "#1B4D3E",
+        strokeThickness: 2,
+        fontFamily: "Rubik, sans-serif",
+        fontWeight: "700",
+        letterSpacing: 3,
+      })
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true }); // Add hand cursor on hover
+
+    // Button animations
+    // Pulse animation for button background
     this.tweens.add({
-      targets: startButton,
-      alpha: 0.7,
-      duration: 800,
+      targets: [buttonBg, buttonBorder],
+      scaleX: 1.05,
+      scaleY: 1.05,
+      duration: 1000,
       yoyo: true,
       repeat: -1,
-      ease: "Power2",
+      ease: "Sine.easeInOut",
     });
 
-    // Input handling
-    this.input.on("pointerdown", () => {
-      this.scene.start("TapCricketScene");
+    // Glow animation for button text
+    this.tweens.add({
+      targets: startButton,
+      alpha: 0.8,
+      duration: 1000,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.easeInOut",
+    });
+
+    // Add all elements to the container for better organization
+    container.add([
+      title,
+      subtitle,
+      panel,
+      border,
+      rules,
+      highScoreText,
+      buttonBg,
+      buttonBorder,
+      startButton,
+    ]);
+
+    // Input and hover handling
+    const onButtonHover = () => {
+      this.tweens.add({
+        targets: [buttonBg, buttonBorder],
+        scaleX: 1.1,
+        scaleY: 1.1,
+        duration: 200,
+        ease: "Back.easeOut",
+      });
+      startButton.setStyle({ fill: "#44ff44" });
+    };
+
+    const onButtonOut = () => {
+      this.tweens.add({
+        targets: [buttonBg, buttonBorder],
+        scaleX: 1,
+        scaleY: 1,
+        duration: 200,
+        ease: "Back.easeOut",
+      });
+      startButton.setStyle({ fill: "#ffffff" });
+    };
+
+    // Add hover effects
+    [buttonBg, buttonBorder, startButton].forEach((button) => {
+      button.on("pointerover", onButtonHover);
+      button.on("pointerout", onButtonOut);
+    });
+
+    // Input handling - start game on click
+    [buttonBg, buttonBorder, startButton].forEach((button) => {
+      button.on("pointerdown", () => {
+        this.scene.start("TapCricketScene");
+      });
     });
 
     // Handle resize
@@ -158,117 +275,98 @@ class GameOverScene extends Phaser.Scene {
       0.8
     );
 
-    // Game Over title
-    const titleSize = Math.min(this.scale.width * 0.1, 50);
-    this.add
-      .text(this.scale.width / 2, this.scale.height * 0.25, "GAME OVER", {
+    // Create a container for better organization
+    const container = this.add.container(this.scale.width / 2, 0);
+
+    // Create a gradient-like background effect with multiple layers
+    // Dark navy base layer
+    const baseOverlay = this.add
+      .rectangle(
+        0,
+        this.scale.height / 2,
+        this.scale.width,
+        this.scale.height,
+        0x0a192f,
+        0.95
+      )
+      .setOrigin(0.5);
+
+    // Add a subtle gradient overlay
+    const gradientOverlay = this.add
+      .rectangle(
+        0,
+        this.scale.height / 2,
+        this.scale.width,
+        this.scale.height,
+        0x112240,
+        0.5
+      )
+      .setOrigin(0.5);
+
+    // Add a very subtle vignette effect
+    const vignette = this.add
+      .rectangle(
+        0,
+        this.scale.height / 2,
+        this.scale.width,
+        this.scale.height,
+        0x000000,
+        0.3
+      )
+      .setOrigin(0.5);
+    container.add([baseOverlay, gradientOverlay, vignette]);
+
+    // Game Over title with glow effect
+    const titleSize = Math.min(this.scale.width * 0.12, 60);
+    const gameOverText = this.add
+      .text(0, this.scale.height * 0.2, "GAME OVER", {
         fontSize: `${titleSize}px`,
         fill: "#ff4444",
-        stroke: "#000000",
-        strokeThickness: 4,
+        stroke: "#660000",
+        strokeThickness: 6,
         fontFamily: "Rubik, sans-serif",
-        fontWeight: "700",
-        letterSpacing: 2,
+        fontWeight: "800",
+        letterSpacing: 4,
       })
       .setOrigin(0.5);
 
-    // All wickets lost message
-    const messageSize = Math.min(this.scale.width * 0.045, 22);
-    this.add
-      .text(
-        this.scale.width / 2,
-        this.scale.height * 0.35,
-        "All 5 wickets lost!",
-        {
-          fontSize: `${messageSize}px`,
-          fill: "#ffffff",
-          fontFamily: "Rubik, sans-serif",
-          fontWeight: "400",
-        }
+    // Add glow to game over text
+    gameOverText.setPipeline("Light2D");
+    gameOverText.preFX.addGlow(0xff0000, 2, 0, false, 0.1, 6);
+
+    // Create a panel for scores
+    const panelWidth = this.scale.width * 0.8;
+    const panelHeight = this.scale.height * 0.35; // Increased panel height
+    const scorePanel = this.add
+      .rectangle(
+        0,
+        this.scale.height * 0.48, // Moved panel down slightly
+        panelWidth,
+        panelHeight,
+        0x000000,
+        0.5
       )
       .setOrigin(0.5);
 
-    // Final Score
-    const scoreSize = Math.min(this.scale.width * 0.08, 40);
-    this.add
-      .text(
-        this.scale.width / 2,
-        this.scale.height * 0.45,
-        `Final Score: ${this.finalScore}`,
-        {
-          fontSize: `${scoreSize}px`,
-          fill: "#ffffff",
-          stroke: "#000000",
-          strokeThickness: 3,
-          fontFamily: "Rubik, sans-serif",
-          fontWeight: "600",
-        }
+    const panelBorder = this.add
+      .rectangle(
+        0,
+        this.scale.height * 0.48, // Moved panel down slightly
+        panelWidth,
+        panelHeight,
+        0xffffff,
+        0
       )
       .setOrigin(0.5);
+    panelBorder.setStrokeStyle(2, 0xffffff, 0.3);
 
-    // High Score with special styling if it's new
-    const highScoreColor = this.isNewHighScore ? "#ffd700" : "#44ff44";
-    const highScoreText = this.isNewHighScore
-      ? `NEW HIGH SCORE: ${this.highScore}!`
-      : `High Score: ${this.highScore}`;
-
-    this.add
-      .text(this.scale.width / 2, this.scale.height * 0.55, highScoreText, {
-        fontSize: `${scoreSize * 0.8}px`,
-        fill: highScoreColor,
-        stroke: "#000000",
-        strokeThickness: 2,
-        fontFamily: "Rubik, sans-serif",
-        fontWeight: "600",
-      })
-      .setOrigin(0.5);
-
-    // New high score celebration
-    if (this.isNewHighScore) {
-      const celebration = this.add
-        .text(
-          this.scale.width / 2,
-          this.scale.height * 0.62,
-          "🎉 CONGRATULATIONS! 🎉",
-          {
-            fontSize: `${messageSize}px`,
-            fill: "#ffd700",
-            fontFamily: "Rubik, sans-serif",
-            fontWeight: "500",
-          }
-        )
-        .setOrigin(0.5);
-
-      // Celebration animation
-      this.tweens.add({
-        targets: celebration,
-        scale: 1.1,
-        duration: 600,
-        yoyo: true,
-        repeat: -1,
-        ease: "Power2",
-      });
-    }
-
-    // Play Again button
-    const buttonSize = Math.min(this.scale.width * 0.06, 28);
-    const playAgainButton = this.add
-      .text(this.scale.width / 2, this.scale.height * 0.75, "PLAY AGAIN", {
-        fontSize: `${buttonSize}px`,
-        fill: "#44ff44",
-        stroke: "#000000",
-        strokeThickness: 3,
-        fontFamily: "Rubik, sans-serif",
-        fontWeight: "700",
-        letterSpacing: 2,
-      })
-      .setOrigin(0.5);
-
-    // Main Menu button
-    const menuButton = this.add
-      .text(this.scale.width / 2, this.scale.height * 0.85, "MAIN MENU", {
-        fontSize: `${buttonSize * 0.8}px`,
-        fill: "#ffffff",
+    // Wickets lost message with icon
+    const messageSize = Math.min(this.scale.width * 0.045, 24);
+    const wicketsText = this.add
+      .text(0, this.scale.height * 0.37, "🏏 All 5 wickets lost!", {
+        // Moved text down
+        fontSize: `${messageSize}px`,
+        fill: "#ff6b6b",
         stroke: "#000000",
         strokeThickness: 2,
         fontFamily: "Rubik, sans-serif",
@@ -276,35 +374,233 @@ class GameOverScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
-    // Button animations
-    this.tweens.add({
-      targets: playAgainButton,
-      alpha: 0.7,
-      duration: 800,
-      yoyo: true,
-      repeat: -1,
-      ease: "Power2",
+    // Final Score with enhanced styling
+    const scoreSize = Math.min(this.scale.width * 0.09, 45);
+    const finalScoreText = this.add
+      .text(0, this.scale.height * 0.46, `Final Score: ${this.finalScore}`, {
+        // Adjusted position
+        fontSize: `${scoreSize}px`,
+        fill: "#ffffff",
+        stroke: "#000000",
+        strokeThickness: 4,
+        fontFamily: "Rubik, sans-serif",
+        fontWeight: "700",
+        letterSpacing: 1,
+      })
+      .setOrigin(0.5);
+
+    // High Score with dynamic styling
+    const highScoreColor = this.isNewHighScore ? "#ffd700" : "#44ff44";
+    const highScoreText = this.isNewHighScore
+      ? `🏆 NEW HIGH SCORE: ${this.highScore}!`
+      : `🏆 High Score: ${this.highScore}`;
+
+    const highScoreDisplay = this.add
+      .text(0, this.scale.height * 0.55, highScoreText, {
+        fontSize: `${scoreSize * 0.8}px`,
+        fill: highScoreColor,
+        stroke: "#000000",
+        strokeThickness: 3,
+        fontFamily: "Rubik, sans-serif",
+        fontWeight: "700",
+        letterSpacing: 1,
+      })
+      .setOrigin(0.5);
+
+    // New high score celebration with enhanced effects
+    if (this.isNewHighScore) {
+      const celebration = this.add
+        .text(0, this.scale.height * 0.62, "🎉 CONGRATULATIONS! 🎉", {
+          fontSize: `${messageSize * 1.2}px`,
+          fill: "#ffd700",
+          stroke: "#000000",
+          strokeThickness: 2,
+          fontFamily: "Rubik, sans-serif",
+          fontWeight: "600",
+        })
+        .setOrigin(0.5);
+
+      // Enhanced celebration animation
+      this.tweens.add({
+        targets: celebration,
+        scale: 1.15,
+        duration: 800,
+        yoyo: true,
+        repeat: -1,
+        ease: "Sine.easeInOut",
+      });
+
+      // Add subtle rotation
+      this.tweens.add({
+        targets: celebration,
+        angle: { from: -3, to: 3 },
+        duration: 1200,
+        yoyo: true,
+        repeat: -1,
+        ease: "Sine.easeInOut",
+      });
+    }
+
+    // Create styled buttons
+    const buttonWidth = this.scale.width * 0.5;
+    const buttonHeight = this.scale.height * 0.07;
+
+    // Play Again button with background
+    const playAgainBg = this.add
+      .rectangle(
+        0,
+        this.scale.height * 0.75,
+        buttonWidth,
+        buttonHeight,
+        0x44ff44,
+        0.3
+      )
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
+
+    const playAgainBorder = this.add
+      .rectangle(
+        0,
+        this.scale.height * 0.75,
+        buttonWidth,
+        buttonHeight,
+        0x44ff44,
+        0
+      )
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
+    playAgainBorder.setStrokeStyle(3, 0x44ff44, 0.8);
+
+    const buttonSize = Math.min(this.scale.width * 0.06, 28);
+    const playAgainText = this.add
+      .text(0, this.scale.height * 0.75, "PLAY AGAIN", {
+        fontSize: `${buttonSize}px`,
+        fill: "#ffffff",
+        stroke: "#1B4D3E",
+        strokeThickness: 2,
+        fontFamily: "Rubik, sans-serif",
+        fontWeight: "700",
+        letterSpacing: 3,
+      })
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
+
+    // Main Menu button with background
+    const menuBg = this.add
+      .rectangle(
+        0,
+        this.scale.height * 0.85,
+        buttonWidth,
+        buttonHeight,
+        0xffffff,
+        0.1
+      )
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
+
+    const menuBorder = this.add
+      .rectangle(
+        0,
+        this.scale.height * 0.85,
+        buttonWidth,
+        buttonHeight,
+        0xffffff,
+        0
+      )
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
+    menuBorder.setStrokeStyle(2, 0xffffff, 0.4);
+
+    const menuText = this.add
+      .text(0, this.scale.height * 0.85, "MAIN MENU", {
+        fontSize: `${buttonSize * 0.8}px`,
+        fill: "#ffffff",
+        stroke: "#000000",
+        strokeThickness: 2,
+        fontFamily: "Rubik, sans-serif",
+        fontWeight: "500",
+        letterSpacing: 2,
+      })
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
+
+    // Add all elements to container
+    container.add([
+      gameOverText,
+      scorePanel,
+      panelBorder,
+      wicketsText,
+      finalScoreText,
+      highScoreDisplay,
+      playAgainBg,
+      playAgainBorder,
+      playAgainText,
+      menuBg,
+      menuBorder,
+      menuText,
+    ]);
+
+    // Button hover effects
+    const onPlayAgainHover = () => {
+      this.tweens.add({
+        targets: [playAgainBg, playAgainBorder],
+        scaleX: 1.05,
+        scaleY: 1.05,
+        duration: 200,
+        ease: "Back.easeOut",
+      });
+      playAgainText.setStyle({ fill: "#44ff44" });
+    };
+
+    const onPlayAgainOut = () => {
+      this.tweens.add({
+        targets: [playAgainBg, playAgainBorder],
+        scaleX: 1,
+        scaleY: 1,
+        duration: 200,
+        ease: "Back.easeOut",
+      });
+      playAgainText.setStyle({ fill: "#ffffff" });
+    };
+
+    const onMenuHover = () => {
+      this.tweens.add({
+        targets: [menuBg, menuBorder],
+        scaleX: 1.05,
+        scaleY: 1.05,
+        duration: 200,
+        ease: "Back.easeOut",
+      });
+      menuText.setStyle({ fill: "#ffd700" });
+    };
+
+    const onMenuOut = () => {
+      this.tweens.add({
+        targets: [menuBg, menuBorder],
+        scaleX: 1,
+        scaleY: 1,
+        duration: 200,
+        ease: "Back.easeOut",
+      });
+      menuText.setStyle({ fill: "#ffffff" });
+    };
+
+    // Add hover effects to Play Again button
+    [playAgainBg, playAgainBorder, playAgainText].forEach((button) => {
+      button.on("pointerover", onPlayAgainHover);
+      button.on("pointerout", onPlayAgainOut);
+      button.on("pointerdown", () => {
+        this.scene.start("TapCricketScene");
+      });
     });
 
-    // Input handling
-    this.input.on("pointerdown", (pointer) => {
-      if (
-        Phaser.Geom.Rectangle.Contains(
-          playAgainButton.getBounds(),
-          pointer.x,
-          pointer.y
-        )
-      ) {
-        this.scene.start("TapCricketScene");
-      } else if (
-        Phaser.Geom.Rectangle.Contains(
-          menuButton.getBounds(),
-          pointer.x,
-          pointer.y
-        )
-      ) {
+    // Add hover effects to Menu button
+    [menuBg, menuBorder, menuText].forEach((button) => {
+      button.on("pointerover", onMenuHover);
+      button.on("pointerout", onMenuOut);
+      button.on("pointerdown", () => {
         this.scene.start("StartScene");
-      }
+      });
     });
   }
 }
@@ -353,7 +649,7 @@ class TapCricketScene extends Phaser.Scene {
     // Game state variables
     this.score = 0;
     this.wickets = 0;
-    this.maxWickets = 5;
+    this.maxWickets = 1;
     this.highScore = Number(localStorage.getItem("tapcricket_highscore") || 0);
     this.ballSpeed = 0;
     this.deliveryType = "";
@@ -510,7 +806,7 @@ class TapCricketScene extends Phaser.Scene {
     const wicketsSize = Math.min(this.scale.width * 0.05, 24);
     this.wicketsText = this.add
       .text(
-        this.scale.width * 0.05,
+        this.scale.width * 0.95,
         scoreMarginTop + scoreSize + 10,
         `Wickets Left: ${this.maxWickets - this.wickets}`,
         {
@@ -522,12 +818,13 @@ class TapCricketScene extends Phaser.Scene {
           fontWeight: "600",
         }
       )
+      .setOrigin(1, 0) // This will right-align the text
       .setScrollFactor(0);
 
     // Delivery type display with enhanced visibility - positioned to avoid overlap
     const deliverySize = Math.min(this.scale.width * 0.06, 28); // Slightly larger
     this.deliveryText = this.add
-      .text(this.scale.width / 2, this.scale.height * 0.12, "", {
+      .text(this.scale.width / 2, this.scale.height * 0.18, "", {
         fontSize: `${deliverySize}px`,
         fill: "#ffffff", // Default color, will be changed per delivery
         stroke: "#000000",
@@ -1739,7 +2036,7 @@ class TapCricketScene extends Phaser.Scene {
 
       this.wicketsText.setFontSize(wicketsSize);
       this.wicketsText.setPosition(
-        width * 0.05,
+        width * 0.95,
         scoreMarginTop + scoreSize + 10
       );
     }
@@ -1751,7 +2048,7 @@ class TapCricketScene extends Phaser.Scene {
     ) {
       const deliverySize = Math.min(width * (isPortrait ? 0.06 : 0.05), 28);
       this.deliveryText.setFontSize(deliverySize);
-      this.deliveryText.setPosition(width / 2, height * 0.12);
+      this.deliveryText.setPosition(width / 2, height * 0.18);
     }
 
     // Update crease position
