@@ -72,6 +72,10 @@ class PenaltyShooter {
         this.shootButton.textContent = 'HOLD SPACE TO CHARGE';
         this.powerMeter.classList.add('active');
         this.targetGrid.classList.add('active');
+        
+        // Add ready animation to goalkeeper
+        this.goalkeeper.classList.remove('idle');
+        this.goalkeeper.classList.add('ready');
 
         // Power charging animation
         let increasing = true;
@@ -136,11 +140,26 @@ class PenaltyShooter {
 
         // Goalkeeper movement
         await this.delay(200);
+        
+        // Remove ready animation
+        this.goalkeeper.classList.remove('ready');
+        
+        // Determine shot height and direction
+        const shotHeight = this.selectedZone < 3 ? 'high' : 'low';
         const goalkeeperMove = Math.random();
         const goalkeeperX = (goalkeeperMove * 300 - 150);
         
-        this.goalkeeper.style.transform = `translateX(${goalkeeperX}px)`;
-        this.goalkeeper.classList.add(goalkeeperX < 0 ? 'diving-left' : 'diving-right');
+        // Choose goalkeeper action based on shot
+        if (shotHeight === 'high' && Math.abs(goalkeeperX) < 50) {
+            // For high center shots, jump up
+            this.goalkeeper.classList.add('jump-high');
+        } else if (goalkeeperX < 0) {
+            // Dive left
+            this.goalkeeper.classList.add('diving-left');
+        } else {
+            // Dive right
+            this.goalkeeper.classList.add('diving-right');
+        }
 
         // Determine if goal is scored
         await this.delay(1000);
@@ -181,7 +200,12 @@ class PenaltyShooter {
         this.ball.classList.remove('shooting');
         this.ball.style.transform = 'translateX(-50%)';
         this.goalkeeper.style.transform = 'translateX(-50%)';
-        this.goalkeeper.classList.remove('diving-left', 'diving-right');
+        this.goalkeeper.classList.remove('diving-left', 'diving-right', 'ready');
+        
+        // Return to idle animation after a short delay
+        setTimeout(() => {
+            this.goalkeeper.classList.add('idle');
+        }, 100);
         this.selectedZone = null;
         this.powerLevel = 0;
         this.powerFill.style.width = '0%';
