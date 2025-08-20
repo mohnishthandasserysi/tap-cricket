@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Toaster, toast } from 'react-hot-toast';
-import { Trophy, Upload, Shuffle, Users, Zap, RefreshCw } from 'lucide-react';
+import { Trophy, Upload, Shuffle, Users, Zap } from 'lucide-react';
 import axios from 'axios';
 import GameSection from './components/GameSection';
 import StatsSection from './components/StatsSection';
@@ -9,7 +9,7 @@ const API_BASE = 'http://localhost:8001';
 
 function App() {
   const [players, setPlayers] = useState([]);
-  const [gameState, setGameState] = useState('loading'); // 'loading', 'ready', 'playing'
+  const [gameState, setGameState] = useState('loading');
   const [currentMashup, setCurrentMashup] = useState(null);
   const [quizOptions, setQuizOptions] = useState([]);
   const [correctAnswer, setCorrectAnswer] = useState('');
@@ -25,7 +25,6 @@ function App() {
     avgTime: 0
   });
 
-  // Check for preloaded players on startup
   useEffect(() => {
     checkPreloadedPlayers();
   }, []);
@@ -158,7 +157,7 @@ function App() {
                 <h1 className="text-3xl font-bold bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">
                   Cricket Face Mashup Challenge
                 </h1>
-                <p className="text-gray-600 mt-1">4 Preloaded Cricket Players - Ready to Play!</p>
+                <p className="text-gray-600 mt-1">Test your cricket knowledge!</p>
               </div>
             </div>
             
@@ -183,7 +182,7 @@ function App() {
                       <Zap className="h-6 w-6 text-yellow-500" />
                       <h3 className="text-xl font-semibold text-gray-800">Ready to Play!</h3>
                     </div>
-                    <p className="text-gray-600">4 cricket players preloaded and ready for mashup!</p>
+                    <p className="text-gray-600">Cricket players preloaded and ready for mashup!</p>
                     <button
                       onClick={startNewRound}
                       disabled={isLoading}

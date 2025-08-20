@@ -65,17 +65,6 @@ const GameSection = ({
                 </div>
               )}
             </div>
-            
-            {gameMode === 'playing' && (
-              <div className="absolute top-4 right-4">
-                <div className="bg-white/90 backdrop-blur-sm rounded-lg px-3 py-2 shadow-lg">
-                  <div className="flex items-center space-x-2">
-                    <Clock className="h-4 w-4 text-gray-600" />
-                    <span className="text-sm font-medium text-gray-800">Time: ∞</span>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
           
           {currentMashup.used_players && (

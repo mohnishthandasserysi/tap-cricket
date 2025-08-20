@@ -29,3 +29,4 @@ echo 💡 If you see a large base64 response above, the split-screen blending is
 echo 🎮 You can now test it in the frontend at: http://localhost:3000
 echo.
 pause
+

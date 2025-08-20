@@ -257,114 +257,118 @@ async def create_mashup():
     print(f"🎮 Creating mashup with: {[p['name'] for p in selected]}")
     
     try:
-        # OPTIMIZED 2-PLAYER BLENDING
+        # OPTIMIZED 2-PLAYER BLENDING (REVERTED TO WORKING VERSION)
         # Get images from the 2 selected players
         img1 = selected[0]['cv_image']
         img2 = selected[1]['cv_image']
         
-        # Resize all images to a smaller, more manageable size
-        height, width = 350, 350  # Smaller size for better user experience
-        img1 = cv2.resize(img1, (width, height)).astype(np.float32)
-        img2 = cv2.resize(img2, (width, height)).astype(np.float32)
-        
-        # RELIABLE HORIZONTAL GRADIENT BLENDING
-        # Guaranteed to show both faces clearly
-        
-        print(f"🔄 Creating gradient blend between {selected[0]['name']} and {selected[1]['name']}")
-        
-        # Create horizontal gradient from left to right
-        # Left side = Player 1, Right side = Player 2, Smooth transition in middle
-        
-        gradient_mask = np.zeros((height, width), dtype=np.float32)
-        
-        for x in range(width):
-            # Create smooth S-curve transition
-            progress = x / (width - 1)  # 0 to 1 from left to right
-            
-            # Smooth S-curve for natural transition
-            if progress < 0.3:
-                alpha = 0.0  # Pure Player 1 on left
-            elif progress > 0.7:
-                alpha = 1.0  # Pure Player 2 on right
-            else:
-                # Smooth transition in middle 40%
-                normalized = (progress - 0.3) / 0.4  # 0 to 1 in transition zone
-                alpha = 3 * normalized**2 - 2 * normalized**3  # Smooth S-curve
-            
-            gradient_mask[:, x] = alpha
-        
-        # Convert to 3-channel mask
-        gradient_mask_3d = cv2.merge([gradient_mask, gradient_mask, gradient_mask])
-        
-        # Apply the gradient blending
-        result = img1 * (1 - gradient_mask_3d) + img2 * gradient_mask_3d
-        
-        print(f"✅ Gradient blend: {selected[0]['name']} (left) → {selected[1]['name']} (right)")
-        
-        # CLEAN UP: Remove background and focus on face
+        # Get the face regions from the images
         face1_rect = selected[0]['face_rect']
         face2_rect = selected[1]['face_rect']
         
-        if face1_rect is not None:
+        if face1_rect is not None and face2_rect is not None:
+            # Extract just the face regions
             x1, y1, w1, h1 = face1_rect
+            x2, y2, w2, h2 = face2_rect
             
-            # Create a clean face mask with expanded region
-            face_mask = np.zeros((height, width), dtype=np.float32)
+            # Add some padding around faces
+            padding = 0.2  # 20% padding
+            x1 = max(0, int(x1 - w1 * padding))
+            y1 = max(0, int(y1 - h1 * padding))
+            w1 = min(img1.shape[1] - x1, int(w1 * (1 + 2 * padding)))
+            h1 = min(img1.shape[0] - y1, int(h1 * (1 + 2 * padding)))
             
-            # Expand face region by 20% for natural look
-            padding = 0.2
-            expanded_x = max(0, int(x1 - w1 * padding))
-            expanded_y = max(0, int(y1 - h1 * padding))
-            expanded_w = min(width - expanded_x, int(w1 * (1 + 2 * padding)))
-            expanded_h = min(height - expanded_y, int(h1 * (1 + 2 * padding)))
+            x2 = max(0, int(x2 - w2 * padding))
+            y2 = max(0, int(y2 - h2 * padding))
+            w2 = min(img2.shape[1] - x2, int(w2 * (1 + 2 * padding)))
+            h2 = min(img2.shape[0] - y2, int(h2 * (1 + 2 * padding)))
             
-            # Create oval face mask
-            center_x = expanded_x + expanded_w // 2
-            center_y = expanded_y + expanded_h // 2
+            # Extract complete face regions
+            face1 = img1[y1:y1+h1, x1:x1+w1]
+            face2 = img2[y2:y2+h2, x2:x2+w2]
+            print(f"🔍 Using complete face regions for vertical stack")
             
-            for i in range(height):
-                for j in range(width):
-                    # Calculate distance from face center
-                    dx = (j - center_x) / (expanded_w / 2)
-                    dy = (i - center_y) / (expanded_h / 2)
-                    dist = np.sqrt(dx*dx + dy*dy)
-                    
-                    # Create smooth oval mask
-                    if dist <= 1.0:
-                        face_mask[i, j] = 1.0
-                    elif dist <= 1.3:
-                        # Smooth falloff
-                        face_mask[i, j] = max(0, 1.0 - (dist - 1.0) / 0.3)
+            # Save the complete faces
+            output_dir = "../Output"
+            os.makedirs(output_dir, exist_ok=True)
             
-            # Apply heavy blur to mask for very smooth edges
-            face_mask = cv2.GaussianBlur(face_mask, (21, 21), 0)
-            face_mask_3d = cv2.merge([face_mask, face_mask, face_mask])
+            # Save the complete faces that will be used for top and bottom
+            cv2.imwrite(os.path.join(output_dir, "top.png"), cv2.convertScaleAbs(face2))  # face2 goes on top
+            cv2.imwrite(os.path.join(output_dir, "bottom.png"), cv2.convertScaleAbs(face1))  # face1 goes on bottom
+            print(f"✅ Saved complete faces to Output directory: top.png ({selected[1]['name']}) and bottom.png ({selected[0]['name']})")
             
-            # Create clean background (neutral gray)
-            clean_background = np.full((height, width, 3), [240, 240, 240], dtype=np.float32)
+            # Now resize the faces to target size
+            target_size = (350, 350)
+            img1 = cv2.resize(face1, target_size).astype(np.float32)
+            img2 = cv2.resize(face2, target_size).astype(np.float32)
+        else:
+            # If face detection failed, resize whole images
+            target_size = (350, 350)
+            img1 = cv2.resize(img1, target_size).astype(np.float32)
+            img2 = cv2.resize(img2, target_size).astype(np.float32)
             
-            # Combine face with clean background
-            result = result * face_mask_3d + clean_background * (1 - face_mask_3d)
-            
-            print(f"🧹 Applied clean background and face isolation")
+            # Save resized whole images for verification (fallback case)
+            output_dir = "../Output"
+            os.makedirs(output_dir, exist_ok=True)
+            cv2.imwrite(os.path.join(output_dir, "top.png"), cv2.convertScaleAbs(img2))  # img2 goes on top
+            cv2.imwrite(os.path.join(output_dir, "bottom.png"), cv2.convertScaleAbs(img1))  # img1 goes on bottom
+            print(f"✅ Saved resized images to Output directory (face detection failed): top.png ({selected[1]['name']}) and bottom.png ({selected[0]['name']})")
+        
+        print(f"🎮 Creating VERTICAL STACK: {selected[0]['name']} (top) + {selected[1]['name']} (bottom)")
+        print(f"🔍 Image shapes - img1: {img1.shape}, img2: {img2.shape}")
+        
+        print("🔍 Creating vertical stack with complete faces")
+        
+        # Create a vertical gradient blend
+        print("🔍 Creating vertical gradient blend between faces")
+        
+        # Create alpha mask for vertical blending
+        height = target_size[1]
+        width = target_size[0]
+        alpha = np.zeros((height, width), dtype=np.float32)
+        
+        # Create vertical gradient (top to bottom)
+        for i in range(height):
+            alpha[i, :] = 1.0 - (i / (height - 1.0))
+        
+        # Make the transition more obvious in the middle
+        blend_zone = 50  # pixels for transition
+        mid_point = height // 2
+        alpha[:mid_point - blend_zone] = 1.0
+        alpha[mid_point + blend_zone:] = 0.0
+        for i in range(blend_zone * 2):
+            pos = mid_point - blend_zone + i
+            if pos >= 0 and pos < height:
+                alpha[pos, :] = 1.0 - (i / (blend_zone * 2.0))
+        
+        # Convert to 3-channel alpha
+        alpha_3d = cv2.merge([alpha, alpha, alpha])
+        
+        # Blend images
+        result = (img2 * alpha_3d + img1 * (1.0 - alpha_3d))
+        print(f"🔍 TEST - Explicitly placing img2 ({selected[1]['name']}) on TOP and img1 ({selected[0]['name']}) on BOTTOM")
+        
+        print(f"🔍 Stacked result shape: {result.shape}")
+        print(f"🔍 Top half: {selected[1]['name']}, Bottom half: {selected[0]['name']}")
         
         # Ensure values are in valid range and convert back to uint8
         result = np.clip(result, 0, 255).astype(np.uint8)
         
-        # Apply light smoothing for professional finish
-        result = cv2.GaussianBlur(result, (3, 3), 0)
+        # Apply very light gaussian blur to smooth any remaining artifacts
+        result = cv2.GaussianBlur(result, (5, 5), 0)
         
         # Convert result to base64
         mashup_base64 = image_to_base64(result)
         
-        print(f"✅ Successfully created clean 2-player gradient blend mashup!")
+        print(f"✅ Successfully created VERTICAL STACK mashup!")
+        print(f"✅ Top: {selected[1]['name']}, Bottom: {selected[0]['name']}")
         
         return {
             "success": True,
             "mashup_image": mashup_base64,
             "used_players": [p['name'] for p in selected],
             "base_player": selected[0]['name'],
-            "blend_status": "clean_gradient_blend_success"
+            "blend_status": "vertical_stack_with_face_alignment_success"
         }
         
     except Exception as e:
@@ -372,14 +376,57 @@ async def create_mashup():
         import traceback
         traceback.print_exc()
         
-        # Fallback to first player's image
-        return {
-            "success": True,
-            "mashup_image": selected[0]['image_url'],
-            "used_players": [selected[0]['name']],
-            "base_player": selected[0]['name'],
-            "blend_status": f"error_fallback: {str(e)}"
-        }
+        # IMPROVED FALLBACK: Always create a blend, never return original image
+        try:
+            # Get images from the 2 selected players
+            img1 = selected[0]['cv_image']
+            img2 = selected[1]['cv_image']
+            
+            # Resize to standard size
+            height, width = 350, 350
+            img1 = cv2.resize(img1, (width, height)).astype(np.float32)
+            img2 = cv2.resize(img2, (width, height)).astype(np.float32)
+            
+            # VERTICAL STACK as final fallback
+            print("⚠️ Using VERTICAL STACK as final fallback")
+            print(f"⚠️ Stacking {selected[0]['name']} (top) + {selected[1]['name']} (bottom)")
+            
+            # Create simple vertical stack without face alignment  
+            gap_size = 10  # Small gap between images
+            result_height = height * 2 + gap_size
+            result = np.ones((result_height, width, 3), dtype=np.float32) * 255  # White background
+            
+            # TEST: Explicitly place img2 on top and img1 on bottom in fallback
+            result[0:height, :, :] = img2  # img2 on top
+            result[height + gap_size:height + gap_size + height, :, :] = img1  # img1 on bottom
+            print(f"🔍 FALLBACK TEST - Explicitly placing img2 ({selected[1]['name']}) on TOP and img1 ({selected[0]['name']}) on BOTTOM")
+            
+            print(f"🔍 FALLBACK - Stacked result shape: {result.shape}")
+            
+            # Ensure values are in valid range and convert back to uint8
+            result = np.clip(result, 0, 255).astype(np.uint8)
+            
+            # Apply light gaussian blur
+            result = cv2.GaussianBlur(result, (5, 5), 0)
+            
+            # Convert result to base64
+            mashup_base64 = image_to_base64(result)
+            
+            return {
+                "success": True,
+                "mashup_image": mashup_base64,
+                "used_players": [p['name'] for p in selected],
+                "base_player": selected[0]['name'],
+                "blend_status": f"vertical_stack_fallback_after_error: {str(e)}"
+            }
+            
+        except Exception as fallback_error:
+            print(f"❌ Even fallback failed: {fallback_error}")
+            # Only as absolute last resort, return an error response
+            raise HTTPException(
+                status_code=500,
+                detail=f"Face mashup failed: {str(e)}. Fallback also failed: {str(fallback_error)}"
+            )
 
 @app.post("/generate-quiz")
 async def generate_quiz(request: QuizRequest):
