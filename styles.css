@@ -124,9 +124,9 @@ body {
     left: 50%;
     transform: translateX(-50%);
     width: 100px;  /* Increased width proportionally */
-    height: 150px; /* Increased from 120px to 150px */
+    height: 200px; /* Increased from 120px to 150px */
     background: url('assets/goalkeeper-sprite.png') no-repeat;
-    background-size: 200px 150px; /* Adjusted to maintain aspect ratio (2 frames) */
+    background-size: 100px 200px; /* Adjusted to maintain aspect ratio (2 frames) */
     image-rendering: pixelated;
     transition: transform 0.4s ease-out;
 }
