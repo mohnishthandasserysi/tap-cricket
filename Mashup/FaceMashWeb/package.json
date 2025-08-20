@@ -1,0 +1,27 @@
+{
+  "name": "guess-the-celebrity",
+  "version": "1.0.0",
+  "description": "A Phaser 3 game to guess celebrities by their eyes using face detection",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "phaser": "^3.75.1",
+    "face-api.js": "^0.22.2"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0"
+  },
+  "keywords": [
+    "phaser",
+    "game",
+    "face-detection",
+    "celebrity",
+    "vite"
+  ],
+  "author": "",
+  "license": "MIT"
+}

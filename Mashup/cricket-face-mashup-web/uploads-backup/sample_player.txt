@@ -1,0 +1,25 @@
+🏏 CRICKET PLAYER IMAGES FOLDER
+
+Place your cricket player images here!
+
+📸 Example files to add:
+- virat_kohli.jpg
+- ms_dhoni.png  
+- rohit_sharma.jpg
+- sachin_tendulkar.jpg
+- babar_azam.jpg
+
+💡 Image Guidelines:
+✅ Clear front-facing photos
+✅ Good lighting and quality
+✅ One player per image
+✅ JPG, PNG, or BMP format
+✅ Any resolution (will be auto-resized)
+
+🚀 Quick Start:
+1. Add 3+ cricket player images to this folder
+2. Run TEST-BACKEND.bat to start the server
+3. Open http://localhost:3000 in browser
+4. Game will auto-detect your images!
+
+Delete this file after adding your images.

@@ -1,0 +1,40 @@
+🏏 CRICKET FACE MASHUP - MANUAL STEPS
+=====================================
+
+If batch files don't work, follow these manual steps:
+
+📋 STEP 1: Open Command Prompt
+- Press Windows + R
+- Type: cmd
+- Press Enter
+
+📋 STEP 2: Navigate to Project
+Copy and paste this command:
+cd /d "D:\Swapnil\Hackathon-2024\cricket-face-mashup-web"
+
+📋 STEP 3: Start Backend
+Copy and paste this command:
+cd backend
+"C:\Users\swapnil.w\AppData\Local\Programs\Python\Python313\python.exe" instant_main.py
+
+(Leave this window open - you should see "Uvicorn running on http://0.0.0.0:8000")
+
+📋 STEP 4: Start Frontend (New Command Prompt)
+- Open a NEW command prompt
+- Copy and paste these commands:
+cd /d "D:\Swapnil\Hackathon-2024\cricket-face-mashup-web"
+cd frontend
+npm start
+
+📋 STEP 5: Open Browser
+Wait 30 seconds, then go to: http://localhost:3000
+
+📋 STEP 6: Play Game
+1. Upload 3+ cricket images
+2. Click "Start First Round"
+3. Play!
+
+🎯 TROUBLESHOOTING:
+- Backend ready when you see: "Uvicorn running on http://0.0.0.0:8000"
+- Frontend ready when browser opens automatically
+- Both must be running simultaneously

@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guess the Celebrity - Eyes Edition</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            height: 100vh;
+            max-height: 600px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: white;
+            font-size: 24px;
+            z-index: 1000;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 4px solid white;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        #game-canvas {
+            flex: 1;
+            background: transparent;
+        }
+
+        .game-ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            z-index: 100;
+        }
+
+        .choices-container {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            z-index: 100;
+        }
+
+        .choice-button {
+            background: rgba(255, 255, 255, 0.9);
+            border: none;
+            border-radius: 15px;
+            padding: 15px 20px;
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            border: 2px solid transparent;
+        }
+
+        .choice-button:hover {
+            background: rgba(255, 255, 255, 1);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .choice-button.correct {
+            background: rgba(34, 197, 94, 0.9);
+            color: white;
+            border-color: #16a34a;
+        }
+
+        .choice-button.incorrect {
+            background: rgba(239, 68, 68, 0.9);
+            color: white;
+            border-color: #dc2626;
+        }
+
+        .result-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 20px 40px;
+            border-radius: 15px;
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+            z-index: 200;
+            backdrop-filter: blur(10px);
+        }
+
+        .result-message.correct {
+            background: rgba(34, 197, 94, 0.9);
+        }
+
+        .result-message.incorrect {
+            background: rgba(239, 68, 68, 0.9);
+        }
+
+        @media (max-width: 768px) {
+            #game-container {
+                margin: 10px;
+                height: calc(100vh - 20px);
+                border-radius: 15px;
+            }
+
+            .game-ui {
+                font-size: 20px;
+                top: 15px;
+                left: 15px;
+                right: 15px;
+            }
+
+            .choices-container {
+                bottom: 15px;
+                left: 15px;
+                right: 15px;
+                gap: 8px;
+            }
+
+            .choice-button {
+                padding: 12px 16px;
+                font-size: 14px;
+                border-radius: 12px;
+            }
+
+            .result-message {
+                font-size: 20px;
+                padding: 15px 30px;
+                margin: 0 20px;
+                border-radius: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="loading">
+            <div>Loading Face Detection Models...</div>
+            <div class="spinner"></div>
+        </div>
+        
+        <div class="game-ui">
+            <div>Score: <span id="score">0</span></div>
+        </div>
+
+        <div id="game-canvas"></div>
+
+        <div class="choices-container" id="choices" style="display: none;">
+            <button class="choice-button" id="choice-0"></button>
+            <button class="choice-button" id="choice-1"></button>
+            <button class="choice-button" id="choice-2"></button>
+            <button class="choice-button" id="choice-3"></button>
+        </div>
+    </div>
+
+    <script>
+        console.log('🔥 INLINE SCRIPT: Browser can run JavaScript!');
+        console.log('🔥 INLINE SCRIPT: Page loaded at:', new Date().toISOString());
+    </script>
+    <script type="module" src="/src/main.js"></script>
+</body>
+</html>
