@@ -32,6 +32,9 @@ class PenaltyShooter {
         // Update display
         this.updateDisplay();
         this.highScoreElement.textContent = this.highScore;
+        
+        // Start goalkeeper idle animation
+        this.goalkeeper.classList.add('idle');
     }
 
     setupEventListeners() {
@@ -73,7 +76,7 @@ class PenaltyShooter {
         this.powerMeter.classList.add('active');
         this.targetGrid.classList.add('active');
         
-        // Add ready animation to goalkeeper
+        // Switch to ready animation
         this.goalkeeper.classList.remove('idle');
         this.goalkeeper.classList.add('ready');
 
@@ -199,13 +202,19 @@ class PenaltyShooter {
     resetPositions() {
         this.ball.classList.remove('shooting');
         this.ball.style.transform = 'translateX(-50%)';
-        this.goalkeeper.style.transform = 'translateX(-50%)';
-        this.goalkeeper.classList.remove('diving-left', 'diving-right', 'ready');
+        
+        // Remove all goalkeeper animation classes
+        this.goalkeeper.classList.remove('diving-left', 'diving-right', 'ready', 'jump-high');
+        
+        // Reset any inline styles that might interfere
+        this.goalkeeper.style.left = '';
+        this.goalkeeper.style.transform = '';
         
         // Return to idle animation after a short delay
         setTimeout(() => {
             this.goalkeeper.classList.add('idle');
         }, 100);
+        
         this.selectedZone = null;
         this.powerLevel = 0;
         this.powerFill.style.width = '0%';
@@ -240,6 +249,11 @@ class PenaltyShooter {
         this.shootButton.textContent = 'TAKE SHOT';
         this.resetPositions();
         this.updateDisplay();
+        
+        // Ensure goalkeeper starts with idle animation
+        setTimeout(() => {
+            this.goalkeeper.classList.add('idle');
+        }, 200);
     }
 
     updateDisplay() {

@@ -118,101 +118,137 @@ body {
 }
 
 /* Goalkeeper */
-.goalkeeper {
+.goalkeeper-container {
     position: absolute;
     bottom: 25%;
     left: 50%;
     transform: translateX(-50%);
-    width: 100px;  /* Increased width proportionally */
-    height: 200px; /* Increased from 120px to 150px */
+    width: 550px; /* Match goal-target-grid width for proper boundaries */
+    height: 200px;
+    overflow: visible; /* Allow content to overflow for smooth animations */
+    z-index: 5;
+}
+
+.goalkeeper {
+    position: absolute;
+    left: 0; /* Start from left edge of container */
+    top: 0;
+    width: 100px;
+    height: 200px;
     background: url('assets/goalkeeper-sprite.png') no-repeat;
-    background-size: 100px 200px; /* Adjusted to maintain aspect ratio (2 frames) */
+    background-size: 100px 200px; /* Two frames side by side, each 100px wide */
+    background-position: 0 0; /* Default to first frame */
     image-rendering: pixelated;
-    transition: transform 0.4s ease-out;
+    transition: none; /* Remove transition for smoother animations */
+    /* Default idle animation */
+    animation: goalieIdle 4s ease-in-out infinite;
 }
 
 /* Goalkeeper Animations */
 @keyframes goalieIdle {
-    0%, 100% { 
+    0% {
+        left: 0px; /* Left end of goal */
         background-position: 0 0;
-        transform: translateX(-50%) scale(1);
     }
-    50% { 
-        background-position: -80px 0;
-        transform: translateX(-50%) scale(1.02);
+    25% {
+        left: 150px; /* Quarter way */
+        background-position: -100px 0;
+    }
+    50% {
+        left: 450px; /* Right end of goal (550px - 100px goalkeeper width) */
+        background-position: 0 0;
+    }
+    75% {
+        left: 300px; /* Three quarters back */
+        background-position: -100px 0;
+    }
+    100% {
+        left: 0px; /* Back to left end */
+        background-position: 0 0;
     }
 }
 
 @keyframes goalieDiveLeft {
     0% { 
         background-position: 0 0;
-        transform: translateX(-50%) rotate(0deg);
+        transform: rotate(0deg);
+        left: 225px; /* Center position */
     }
-    20% {
-        background-position: -80px 0;
-        transform: translateX(-80px) rotate(-15deg);
+    30% {
+        background-position: -100px 0;
+        transform: rotate(-15deg);
+        left: 100px; /* Move towards left */
     }
     100% { 
-        background-position: -80px 0;
-        transform: translateX(-160px) rotate(-30deg);
+        background-position: -100px 0;
+        transform: rotate(-35deg);
+        left: -50px; /* Full dive left (can go beyond container) */
     }
 }
 
 @keyframes goalieDiveRight {
     0% { 
         background-position: 0 0;
-        transform: translateX(-50%) rotate(0deg);
+        transform: rotate(0deg);
+        left: 225px; /* Center position */
     }
-    20% {
-        background-position: -80px 0;
-        transform: translateX(-20px) rotate(15deg);
+    30% {
+        background-position: -100px 0;
+        transform: rotate(15deg);
+        left: 350px; /* Move towards right */
     }
     100% { 
-        background-position: -80px 0;
-        transform: translateX(60px) rotate(30deg);
+        background-position: -100px 0;
+        transform: rotate(35deg);
+        left: 500px; /* Full dive right (can go beyond container) */
     }
 }
 
 @keyframes goalieReady {
     0%, 100% { 
         background-position: 0 0;
-        transform: translateX(-50%) translateY(0);
+        transform: translateY(0);
+        left: 225px; /* Center position */
     }
     50% { 
-        background-position: -80px 0;
-        transform: translateX(-50%) translateY(-5px);
+        background-position: -100px 0;
+        transform: translateY(-8px);
+        left: 225px; /* Stay centered */
     }
 }
 
 @keyframes goalieJumpHigh {
     0% {
         background-position: 0 0;
-        transform: translateX(-50%) translateY(0);
+        transform: translateY(0);
+        left: 225px; /* Center position */
     }
     50% {
-        background-position: -80px 0;
-        transform: translateX(-50%) translateY(-40px);
+        background-position: -100px 0;
+        transform: translateY(-50px);
+        left: 225px; /* Stay centered */
     }
     100% {
         background-position: 0 0;
-        transform: translateX(-50%) translateY(0);
+        transform: translateY(0);
+        left: 225px; /* Stay centered */
     }
 }
 
 .goalkeeper.idle {
-    animation: goalieIdle 1.8s ease-in-out infinite;
+    animation: goalieIdle 4s ease-in-out infinite;
 }
 
 .goalkeeper.diving-left {
-    animation: goalieDiveLeft 0.5s cubic-bezier(0.45, 0, 0.55, 1) forwards;
+    animation: goalieDiveLeft 0.6s cubic-bezier(0.45, 0, 0.55, 1) forwards;
 }
 
 .goalkeeper.diving-right {
-    animation: goalieDiveRight 0.5s cubic-bezier(0.45, 0, 0.55, 1) forwards;
+    animation: goalieDiveRight 0.6s cubic-bezier(0.45, 0, 0.55, 1) forwards;
 }
 
 .goalkeeper.ready {
-    animation: goalieReady 0.8s ease-in-out infinite;
+    animation: goalieReady 1s ease-in-out infinite;
 }
 
 .goalkeeper.jump-high {
