@@ -9,6 +9,15 @@ class StartScene extends Phaser.Scene {
   preload() {
     // Load the same assets as main game for consistency
     this.load.image("pitch", "assets/pitch.jpg");
+
+    // Load background music
+    this.load.audio("backgroundMusic", "assets/sound/background.mp3");
+
+    // Load hit sound effect
+    this.load.audio("hitSound", "assets/sound/hit.mp3");
+
+    // Load wicket sound effect
+    this.load.audio("wicketSound", "assets/sound/wicket.mp3");
   }
 
   create() {
@@ -616,6 +625,15 @@ class TapCricketScene extends Phaser.Scene {
     this.load.image("pitch", "assets/pitch.jpg"); // vertical pitch bg
     this.load.image("ball", "assets/ball.png"); // cricket ball
 
+    // Load background music
+    this.load.audio("backgroundMusic", "assets/sound/background.mp3");
+
+    // Load hit sound effect
+    this.load.audio("hitSound", "assets/sound/hit.mp3");
+
+    // Load wicket sound effect
+    this.load.audio("wicketSound", "assets/sound/wicket.mp3");
+
     // Try to load batter sprite sheet, with fallback if missing
     this.batterSpriteMissing = false;
 
@@ -649,16 +667,25 @@ class TapCricketScene extends Phaser.Scene {
     // Game state variables
     this.score = 0;
     this.wickets = 0;
-    this.maxWickets = 1;
+    this.maxWickets = 5;
     this.highScore = Number(localStorage.getItem("tapcricket_highscore") || 0);
     this.ballSpeed = 0;
     this.deliveryType = "";
     this.ballHasBounced = false;
     this.activeBall = null;
     this.creaseY = 0;
+
+    // Background music reference
+    this.backgroundMusic = null;
+    this.musicLoopTimer = null;
   }
 
   create() {
+    // Initialize background music with delay to ensure all assets are loaded
+    this.time.delayedCall(500, () => {
+      this.startBackgroundMusic();
+    });
+
     // Initialize dynamic shadows (disabled temporarily to debug)
     this.shadowOffset = { x: 2, y: 2 };
     // this.time.addEvent({
@@ -1085,6 +1112,7 @@ class TapCricketScene extends Phaser.Scene {
     this.activeBall.setData("delivery", delivery);
     this.activeBall.setData("hasBounced", false);
     this.activeBall.setData("canHit", false);
+    this.activeBall.setData("hasBeenHit", false);
     this.balls.add(this.activeBall);
 
     // Set initial velocity for bowling arc
@@ -1177,6 +1205,12 @@ class TapCricketScene extends Phaser.Scene {
   missedBall(ball) {
     console.log("Ball missed completely - Wicket lost!");
 
+    // Play wicket sound effect starting from 1 second
+    this.sound.play("wicketSound", {
+      volume: 0.6, // Adjust volume as needed
+      seek: 1.0, // Start playing from 1 second into the audio
+    });
+
     // Increment wickets lost
     this.wickets += 1;
     this.updateWicketsDisplay();
@@ -1260,6 +1294,7 @@ class TapCricketScene extends Phaser.Scene {
         distanceFromBatter
       );
       const canHit = ball.getData("canHit");
+      const hasBeenHit = ball.getData("hasBeenHit");
 
       // Always show timing feedback when player taps
       console.log(`=== SWING ATTEMPT ===`);
@@ -1268,9 +1303,15 @@ class TapCricketScene extends Phaser.Scene {
       console.log(`Timing: ${timingFeedback}`);
       console.log(`Ball can be hit: ${canHit}`);
       console.log(`Ball has bounced: ${ball.getData("hasBounced")}`);
+      console.log(`Ball has been hit: ${hasBeenHit}`);
       console.log(
         `Delivery: ${delivery.type} (Difficulty: ${delivery.difficulty})`
       );
+
+      if (hasBeenHit) {
+        console.log(`❌ BALL ALREADY HIT - Cannot hit the same ball twice!`);
+        return; // Exit early if ball has already been hit
+      }
 
       if (canHit) {
         // Ball is in hittable state
@@ -1350,6 +1391,15 @@ class TapCricketScene extends Phaser.Scene {
   }
 
   hitBall(ball, delivery, accuracy) {
+    // Mark ball as hit to prevent multiple hits
+    ball.setData("hasBeenHit", true);
+
+    // Play hit sound effect starting from 1 second
+    this.sound.play("hitSound", {
+      volume: 0.5, // Adjust volume as needed
+      seek: 1.0, // Start playing from 1 second into the audio
+    });
+
     // Stop all ball tweens
     this.tweens.killTweensOf(ball);
 
@@ -1475,7 +1525,7 @@ class TapCricketScene extends Phaser.Scene {
     let color = "#ffffff";
 
     if (runs === 0) {
-      feedbackText = "NO RUNS!";
+      feedbackText = "DOT BALL!";
       color = "#ff4444";
     } else if (accuracy > 0.8) {
       feedbackText = `${runs} RUNS! PERFECT!`;
@@ -1568,6 +1618,134 @@ class TapCricketScene extends Phaser.Scene {
           }
         },
       });
+    }
+  }
+
+  // Background music management
+  startBackgroundMusic() {
+    try {
+      // Check if music is already playing globally
+      if (!this.sound.get("backgroundMusic")) {
+        // Check if the audio file was loaded successfully
+        if (!this.cache.audio.has("backgroundMusic")) {
+          console.error(
+            "Background music not loaded - check if assets/sound/background.mp3 exists"
+          );
+          return;
+        }
+
+        this.backgroundMusic = this.sound.add("backgroundMusic", {
+          volume: 0.3, // Adjust volume as needed (0.0 to 1.0)
+          loop: false, // We'll handle looping manually to avoid last 2 seconds
+        });
+
+        // Add error handling for audio playback
+        this.backgroundMusic.on("looped", () => {
+          console.log("Background music looped successfully");
+        });
+
+        this.backgroundMusic.on("complete", () => {
+          console.log("Background music completed");
+        });
+
+        // Play the music and set up manual looping
+        this.playMusicWithLoop();
+        console.log("Background music started with custom loop");
+      } else {
+        // Music already exists, just get reference
+        this.backgroundMusic = this.sound.get("backgroundMusic");
+        console.log("Background music already playing");
+      }
+    } catch (error) {
+      console.error("Error starting background music:", error);
+    }
+  }
+
+  playMusicWithLoop() {
+    if (!this.backgroundMusic) {
+      console.error("Cannot play music - backgroundMusic is null");
+      return;
+    }
+
+    try {
+      // Play the music
+      console.log("Attempting to play background music...");
+
+      // Check if audio context is ready
+      if (this.sound.context && this.sound.context.state === "suspended") {
+        console.log("Audio context suspended, trying to resume...");
+        this.sound.context
+          .resume()
+          .then(() => {
+            this.backgroundMusic.play();
+          })
+          .catch((err) => {
+            console.error("Failed to resume audio context:", err);
+          });
+      } else {
+        this.backgroundMusic.play();
+      }
+
+      // Wait a bit for duration to be available, then set up looping
+      this.time.delayedCall(100, () => {
+        if (!this.backgroundMusic || this.backgroundMusic.isDestroyed) return;
+
+        // Set up event listener to restart before the last 2 seconds
+        this.backgroundMusic.once("complete", () => {
+          console.log("Music completed naturally, restarting...");
+          // Restart the music immediately when it completes
+          if (this.backgroundMusic && !this.backgroundMusic.isDestroyed) {
+            this.playMusicWithLoop();
+          }
+        });
+
+        // Stop the music 2 seconds before it naturally ends and restart
+        const musicDuration = this.backgroundMusic.duration;
+
+        if (musicDuration && musicDuration > 2) {
+          const stopTime = Math.max(0, musicDuration - 2) * 1000; // Convert to milliseconds
+          console.log(
+            `Music duration: ${musicDuration}s, will loop at: ${
+              stopTime / 1000
+            }s`
+          );
+
+          // Clear any existing timer
+          if (this.musicLoopTimer) {
+            this.musicLoopTimer.destroy();
+          }
+
+          // Set timer to restart music before last 2 seconds
+          this.musicLoopTimer = this.time.delayedCall(stopTime, () => {
+            if (this.backgroundMusic && this.backgroundMusic.isPlaying) {
+              console.log("Stopping music at 2s before end, restarting...");
+              this.backgroundMusic.stop();
+              this.playMusicWithLoop();
+            }
+          });
+        } else {
+          console.warn(
+            "Music duration not available or too short, using fallback loop"
+          );
+          // Fallback: just rely on complete event
+        }
+      });
+    } catch (error) {
+      console.error("Error playing background music:", error);
+    }
+  }
+
+  stopBackgroundMusic() {
+    // Clear the loop timer
+    if (this.musicLoopTimer) {
+      this.musicLoopTimer.destroy();
+      this.musicLoopTimer = null;
+    }
+
+    if (this.backgroundMusic && this.backgroundMusic.isPlaying) {
+      this.backgroundMusic.stop();
+      this.backgroundMusic = null;
+      console.log("Background music stopped");
     }
   }
 
@@ -1708,48 +1886,29 @@ class TapCricketScene extends Phaser.Scene {
         },
       });
     } else if (trajectory === "six") {
-      // Six - high arc toward top of screen (left side)
-      const startAngle = 120;
-      const endAngle = 150;
-      const startAngleRad = Phaser.Math.DegToRad(startAngle);
-      const endAngleRad = Phaser.Math.DegToRad(endAngle);
+      // Six - straight shot to top left of screen (no curve)
+      const angle = Phaser.Math.DegToRad(135); // 135° angle for straight six
 
-      // Calculate high arc trajectory points
-      const peakDistance = crowd.distance * 0.7;
-      const peakX = batterX + Math.cos(startAngleRad) * peakDistance;
-      const peakY = batterY - Math.sin(startAngleRad) * peakDistance * 0.8; // High up (negative Y = up)
+      // Calculate final position for straight six
+      const finalX = batterX + Math.cos(angle) * crowd.distance;
+      const finalY = batterY - Math.sin(angle) * crowd.distance; // Toward top-left (negative Y = up)
 
-      // Create high arc that goes toward top of screen
-      const finalX = batterX + Math.cos(endAngleRad) * crowd.distance;
-      const finalY = batterY - Math.sin(endAngleRad) * crowd.distance; // Toward top (negative Y = up)
-
-      // First phase: Rise high at 120° angle
+      // Single straight trajectory to top of screen
       this.tweens.add({
         targets: ball,
-        x: peakX,
-        y: peakY,
-        duration: duration * 0.6,
+        x: finalX,
+        y: finalY,
+        duration: duration,
         ease: "Quad.Out",
         onComplete: () => {
-          // Second phase: Continue upward arc to top of screen
+          // For sixes, ball disappears into crowd
           this.tweens.add({
             targets: ball,
-            x: finalX,
-            y: finalY,
-            duration: duration * 0.4,
-            ease: "Quad.Out",
+            alpha: 0,
+            scale: 0.5,
+            duration: 200,
             onComplete: () => {
-              // For sixes, ball disappears into crowd (top of screen)
-              this.tweens.add({
-                targets: ball,
-                alpha: 0,
-                scale: 0.5,
-                y: finalY - 50, // Move slightly higher as it fades
-                duration: 300,
-                onComplete: () => {
-                  this.completeBallAnimation(ball);
-                },
-              });
+              this.completeBallAnimation(ball);
             },
           });
         },
@@ -1880,6 +2039,9 @@ class TapCricketScene extends Phaser.Scene {
 
   // Game over method
   gameOver() {
+    // Stop background music
+    this.stopBackgroundMusic();
+
     // Stop any active balls and clear timers
     if (this.activeBall && this.activeBall.active) {
       this.activeBall.destroy();
@@ -1948,6 +2110,9 @@ class TapCricketScene extends Phaser.Scene {
   }
 
   destroy() {
+    // Stop background music
+    this.stopBackgroundMusic();
+
     // Clean up event listeners and timers
     if (this.scale) {
       this.scale.off("resize", this.handleResize, this);
